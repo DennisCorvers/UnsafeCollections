@@ -37,9 +37,6 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
     /// </summary>
     public unsafe struct UnsafeSPSCQueue
     {
-        const string DESTINATION_TOO_SMALL = "Destination too small.";
-
-
         UnsafeBuffer _items;
         IntPtr _typeHandle; // Readonly
         HeadAndTail _headAndTail;
@@ -55,16 +52,13 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             capacity = Memory.RoundUpToPowerOf2(capacity);
             int stride = sizeof(T);
 
-            UnsafeSPSCQueue* queue;
-
             var alignment = Memory.GetAlignment(stride);
             var sizeOfQueue = Memory.RoundToAlignment(sizeof(UnsafeSPSCQueue), alignment);
             var sizeOfArray = stride * capacity;
 
             var ptr = Memory.MallocAndZero(sizeOfQueue + sizeOfArray, alignment);
 
-            // cast ptr to queue
-            queue = (UnsafeSPSCQueue*)ptr;
+            UnsafeSPSCQueue* queue = (UnsafeSPSCQueue*)ptr;
 
             // initialize fixed buffer from same block of memory as the stack
             UnsafeBuffer.InitFixed(&queue->_items, (byte*)ptr + sizeOfQueue, capacity, stride);
@@ -303,9 +297,9 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 
             var arr = new T[count];
 
-            int numToCopy = (int)count;
+            int numToCopy = count;
             int bufferLength = queue->_items.Length;
-            int ihead = (int)head;
+            int ihead = head;
 
             int firstPart = Math.Min(bufferLength - ihead, numToCopy);
 
@@ -318,10 +312,6 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
                     UnsafeBuffer.CopyTo<T>(queue->_items, 0, ptr, 0 + bufferLength - ihead, numToCopy);
             }
 
-            for (int i = 0; i < 16; i++)
-            {
-                System.Diagnostics.Debug.WriteLine(*queue->_items.Element<int>(i));
-            }
             return arr;
         }
 
@@ -336,20 +326,6 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 
             return new Enumerator<T>(queue);
         }
-
-        [StructLayout(LayoutKind.Explicit, Size = 3 * CACHE_LINE_SIZE)]
-        [DebuggerDisplay("Head = {Head}, Tail = {Tail}")]
-        private struct HeadAndTail
-        {
-            private const int CACHE_LINE_SIZE = 64;
-
-            [FieldOffset(1 * CACHE_LINE_SIZE)]
-            public long Head;
-
-            [FieldOffset(2 * CACHE_LINE_SIZE)]
-            public long Tail;
-        }
-
 
 
         public unsafe struct Enumerator<T> : IUnsafeEnumerator<T> where T : unmanaged
@@ -400,7 +376,7 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
                     return false;
                 }
 
-                int nextIndex = (int)(headIndex & _queue->_mask);
+                int nextIndex = headIndex & _queue->_mask;
                 _current = _queue->_items.Element<T>(nextIndex);
 
                 return true;

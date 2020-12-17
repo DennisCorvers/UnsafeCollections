@@ -36,9 +36,6 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
     public unsafe struct UnsafeMPSCQueue
     {
         // Implementation based on .Net Core3.1 ConcurrentQueue
-
-        const string DESTINATION_TOO_SMALL = "Destination too small.";
-
         UnsafeBuffer _items;
         HeadAndTail _headAndTail;
 
@@ -56,21 +53,18 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             capacity = Memory.RoundUpToPowerOf2(capacity);
 
             // Required to get the memory size of the Slot + Value
-            int slotStride = Marshal.SizeOf(new Slot<T>());
+            int slotStride = Marshal.SizeOf(new QueueSlot<T>());
             int slotAlign = Memory.GetMaxAlignment(sizeof(T), sizeof(int));
             int slotOffset = Memory.RoundToAlignment(sizeof(T), slotAlign);
 
             int alignment = Memory.GetAlignment(slotStride);
-
-            UnsafeMPSCQueue* queue;
 
             var sizeOfQueue = Memory.RoundToAlignment(sizeof(UnsafeMPSCQueue), alignment);
             var sizeOfArray = slotStride * capacity;
 
             var ptr = Memory.MallocAndZero(sizeOfQueue + sizeOfArray, alignment);
 
-            // cast ptr to queue
-            queue = (UnsafeMPSCQueue*)ptr;
+            UnsafeMPSCQueue* queue = (UnsafeMPSCQueue*)ptr;
 
             // initialize fixed buffer from same block of memory as the stack
             UnsafeBuffer.InitFixed(&queue->_items, (byte*)ptr + sizeOfQueue, capacity, slotStride);
@@ -333,29 +327,6 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             UDebug.Assert(typeof(T).TypeHandle.Value == queue->_typeHandle);
 
             return new Enumerator<T>(queue);
-        }
-
-        //https://source.dot.net/#System.Private.CoreLib/ConcurrentQueueSegment.cs,ec7a63152c0fbc9e
-
-        [StructLayout(LayoutKind.Explicit, Size = 3 * CACHE_LINE_SIZE)]
-        [DebuggerDisplay("Head = {Head}, Tail = {Tail}")]
-        private struct HeadAndTail
-        {
-            private const int CACHE_LINE_SIZE = 64;
-
-            [FieldOffset(1 * CACHE_LINE_SIZE)]
-            public int Head;
-
-            [FieldOffset(2 * CACHE_LINE_SIZE)]
-            public int Tail;
-        }
-
-        // This struct is only used to get the size in memory
-        [StructLayout(LayoutKind.Sequential)]
-        private struct Slot<T>
-        {
-            T Item;
-            int SequenceNumber;
         }
 
 
