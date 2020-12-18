@@ -450,6 +450,10 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             queue->_crossSegmentLock.Lock();
             queue->_tail->EnsureFrozenForEnqueues();
 
+            var segmentsize = INITIAL_SEGMENT_LENGTH;
+            if (queue->_fixedSize)
+                segmentsize = queue->_tail->Capacity;
+
             // Free all segments
             var segment = queue->_head;
             do
@@ -460,7 +464,7 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             }
             while (segment != null);
 
-            queue->_tail = queue->_head = QueueSegment.Allocate(INITIAL_SEGMENT_LENGTH, queue->_slotStride, queue->_slotOffset);
+            queue->_tail = queue->_head = QueueSegment.Allocate(segmentsize, queue->_slotStride, queue->_slotOffset);
 
             queue->_crossSegmentLock.Unlock();
         }

@@ -121,7 +121,7 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
         }
 
         [Test]
-        public void ExpandTestFixed()
+        public void ExpandFixedTest()
         {
             var q = UnsafeMPMCQueue.Allocate<int>(64, true);
 
@@ -181,6 +181,29 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
             Assert.AreEqual(10, UnsafeMPMCQueue.GetCount(q));
             UnsafeMPMCQueue.Clear(q);
             Assert.AreEqual(0, UnsafeMPMCQueue.GetCount(q));
+
+            Assert.IsTrue(UnsafeMPMCQueue.IsEmpty<int>(q));
+
+            UnsafeMPMCQueue.Free(q);
+        }
+
+        [Test]
+        public void ClearFixedTest()
+        {
+            int size = 128; // Power of two.
+            var q = UnsafeMPMCQueue.Allocate<int>(size, true);
+
+            //Inserts 10 items.
+            SplitQueue(q);
+
+            Assert.AreEqual(10, UnsafeMPMCQueue.GetCount(q));
+            Assert.AreEqual(size, UnsafeMPMCQueue.GetCapacity(q));
+
+            UnsafeMPMCQueue.Clear(q);
+
+            Assert.AreEqual(0, UnsafeMPMCQueue.GetCount(q));
+            // Queue capacity needs to remain unchanged after clear.
+            Assert.AreEqual(size, UnsafeMPMCQueue.GetCapacity(q));
 
             Assert.IsTrue(UnsafeMPMCQueue.IsEmpty<int>(q));
 
