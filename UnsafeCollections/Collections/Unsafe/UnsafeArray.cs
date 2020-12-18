@@ -95,6 +95,11 @@ namespace UnsafeCollections.Collections.Unsafe
             return array->_buffer;
         }
 
+        public static void Clear<T>(UnsafeArray* array) where T : unmanaged
+        {
+            Memory.ZeroMem(array->_buffer, array->_length * sizeof(T));
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetLength(UnsafeArray* array)
         {
@@ -187,6 +192,33 @@ namespace UnsafeCollections.Collections.Unsafe
             UDebug.Assert(GetLength(destination) >= destinationIndex + count);
 
             Memory.MemCpy((T*)destination->_buffer + destinationIndex, (T*)source->_buffer + sourceIndex, count * sizeof(T));
+        }
+
+        public void CopyTo<T>(void* destination, int destinationIndex) where T : unmanaged
+        {
+            UDebug.Assert(destination != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == _typeHandle);
+
+            Memory.MemCpy((T*)destination + destinationIndex, _buffer, _length * sizeof(T));
+        }
+
+        public void CopyFrom<T>(void* source, int sourceIndex, int count) where T : unmanaged
+        {
+            UDebug.Assert(source != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == _typeHandle);
+
+            if (sourceIndex + count > _length)
+                throw new IndexOutOfRangeException();
+
+            Memory.MemCpy(_buffer, (T*)source + sourceIndex, count * sizeof(T));
+        }
+
+        public static bool Contains<T>(UnsafeArray* array, T item) where T : unmanaged, IEquatable<T>
+        {
+            UDebug.Assert(array != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == array->_typeHandle);
+
+            return IndexOf(array, item) > -1;
         }
 
         public static int IndexOf<T>(UnsafeArray* array, T item) where T : unmanaged, IEquatable<T>
