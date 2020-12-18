@@ -9,7 +9,7 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 {
     public unsafe struct UnsafeMPMCQueue
     {
-        // Implementation used from https://source.dot.net/#System.Private.CoreLib/ConcurrentQueue.cs
+        // Implementation based on https://source.dot.net/#System.Private.CoreLib/ConcurrentQueue.cs
 
         const int INITIAL_SEGMENT_LENGTH = 32;
         const int MAX_SEGMENT_LENGTH = 1024 * 1024;

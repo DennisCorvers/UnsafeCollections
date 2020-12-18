@@ -7,7 +7,7 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
     [DebuggerDisplay("Capacity = {Capacity}")]
     internal unsafe struct QueueSegment
     {
-        // Implementation used from https://source.dot.net/#System.Private.CoreLib/ConcurrentQueueSegment.cs
+        // Implementation based on https://source.dot.net/#System.Private.CoreLib/ConcurrentQueueSegment.cs
 
 #pragma warning disable IDE0032
         void* _items;    // Readonly

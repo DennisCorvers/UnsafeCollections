@@ -1,4 +1,3 @@
-A fork of https://github.com/fholm/UnsafeCollections
 
 **This fork is still a WIP**
 
@@ -20,12 +19,12 @@ Project is targeted as a .Net 2.0 Standard library. Usable in Unity via dll.
 - Hash Set
 - Ordered Map (Not Complete, Public API Missing)
 - Ordered Set
-- Concurrent SPSC Queue
-- Concurrent MPSC Queue
+- Concurrent SPSC Lockfree Queue
+- Concurrent MPSC Lockfree Queue
+- Concurrent MPMC Queue (Lockfree with fixed size)
 
 ## Planned Additions
 
-- Concurrent Multi Producer Multi Consumer Queue (MPMC, mostly lockless)
 - Concurrent Multi Producer Multi Consumer Dictionary (MPMC, mostly lockless)
 
 ## Build

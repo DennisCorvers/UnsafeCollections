@@ -1,8 +1,14 @@
 ﻿/*
 The MIT License (MIT)
 
-Copyright (c) 2019 Fredrik Holmstrom
 Copyright (c) 2020 Dennis Corvers
+
+This software is based on, a modification of and/or an extention 
+of "UnsafeCollections" originally authored by:
+
+The MIT License (MIT)
+
+Copyright (c) 2019 Fredrik Holmstrom
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +49,7 @@ namespace UnsafeCollections
 #if UNITY
             return UnsafeUtility.Malloc(size, alignment, Unity.Collections.Allocator.Persistent);
 #else
-            //Marshal always allocates with an alignment of 8.
+            // Marshal always allocates with an alignment of 8.
             return (void*)Marshal.AllocHGlobal((int)size);
 #endif
         }
@@ -70,8 +76,8 @@ namespace UnsafeCollections
 #if UNITY
             UnsafeUtility.MemClear(ptr, size);
 #else
-            long c = size / 8; //longs
-            long b = size % 8; //bytes
+            long c = size / 8; // longs
+            long b = size % 8; // bytes
 
             for (int i = 0; i < c; i++)
                 *((ulong*)ptr + i) = 0;
