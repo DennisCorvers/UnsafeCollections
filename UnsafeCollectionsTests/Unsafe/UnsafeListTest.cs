@@ -98,5 +98,17 @@ namespace UnsafeCollectionsTests.Unsafe
             var index = UnsafeList.IndexOf(arr, 5);
             Assert.AreEqual(4, index);
         }
+
+        [Test]
+        public void LastIndexOfTest()
+        {
+            var arr = UnsafeList.Allocate<int>(10);
+            for (int i = 1; i <= 10; i++)
+                UnsafeList.Add(arr, i);
+
+            Assert.AreEqual(4, UnsafeList.LastIndexOf(arr, 5));
+            Assert.AreEqual(-1, UnsafeList.LastIndexOf(arr, 645));
+            Assert.AreEqual(9, UnsafeList.LastIndexOf(arr, 10));
+        }
     }
 }

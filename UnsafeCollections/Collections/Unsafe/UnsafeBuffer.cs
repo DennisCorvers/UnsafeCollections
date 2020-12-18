@@ -181,7 +181,8 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             UDebug.Assert(startIndex > -1);
             UDebug.Assert(count > 0);
-            UDebug.Assert(source.Length >= startIndex + count);
+            UDebug.Assert(source.Length >= startIndex);
+            UDebug.Assert(startIndex + 1 - count >= 0);
             UDebug.Assert(source.Stride == sizeof(T));
 
             int endIndex = startIndex - count + 1;

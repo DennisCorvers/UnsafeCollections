@@ -342,7 +342,7 @@ namespace UnsafeCollections.Collections.Unsafe
             UDebug.Assert(list->_items.Ptr != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == list->_typeHandle);
 
-            return UnsafeBuffer.LastIndexOf(list->_items, item, 0, list->_count);
+            return UnsafeBuffer.LastIndexOf(list->_items, item, list->_count - 1, list->_count);
         }
 
         public static bool Remove<T>(UnsafeList* list, T item) where T : unmanaged, IEquatable<T>

@@ -1,6 +1,13 @@
 /*
 The MIT License (MIT)
 
+Copyright (c) 2020 Dennis Corvers
+
+This software is based on, a modification of and/or an extention 
+of "UnsafeCollections" originally authored by:
+
+The MIT License (MIT)
+
 Copyright (c) 2019 Fredrik Holmstrom
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,26 +30,28 @@ THE SOFTWARE.
 */
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
     public unsafe struct UnsafeStack
     {
         const string STACK_FULL = "Fixed size stack is full";
+        const string STACK_EMPTY = "Stack is empty";
+
+        const int DEFAULT_CAPACITY = 8;
 
         UnsafeBuffer _items;
+        IntPtr _typeHandle;
         int _count;
 
         public static UnsafeStack* Allocate<T>(int capacity, bool fixedSize = false) where T : unmanaged
         {
-            return Allocate(capacity, sizeof(T), fixedSize);
-        }
-
-        public static UnsafeStack* Allocate(int capacity, int stride, bool fixedSize = false)
-        {
             UDebug.Assert(capacity > 0);
-            UDebug.Assert(stride > 0);
 
+            var stride = sizeof(T);
             UnsafeStack* stack;
 
             // fixedSize stack means we are allocating the memory
@@ -78,6 +87,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
             // just safety, make sure count is 0
             stack->_count = 0;
+            stack->_typeHandle = typeof(T).TypeHandle.Value;
 
             return stack;
         }
@@ -104,6 +114,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             UDebug.Assert(stack != null);
             UDebug.Assert(stack->_items.Ptr != null);
+
             return stack->_items.Length;
         }
 
@@ -111,6 +122,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             UDebug.Assert(stack != null);
             UDebug.Assert(stack->_items.Ptr != null);
+
             return stack->_count;
         }
 
@@ -118,99 +130,190 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             UDebug.Assert(stack != null);
             UDebug.Assert(stack->_items.Ptr != null);
+
             stack->_count = 0;
         }
 
         public static bool IsFixedSize(UnsafeStack* stack)
         {
             UDebug.Assert(stack != null);
+
             return stack->_items.Dynamic == 0;
+        }
+
+
+        public static bool Contains<T>(UnsafeStack* stack, T item) where T : unmanaged, IEquatable<T>
+        {
+            UDebug.Assert(stack != null);
+            UDebug.Assert(stack->_items.Ptr != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == stack->_typeHandle);
+
+            int count = stack->_count;
+
+            if (count == 0)
+                return false;
+
+            return UnsafeBuffer.LastIndexOf(stack->_items, item, count - 1, count) != -1;
+        }
+
+        public static void CopyTo<T>(UnsafeStack* stack, void* destination, int destinationIndex) where T : unmanaged
+        {
+            UDebug.Assert(stack != null);
+            UDebug.Assert(stack->_items.Ptr != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == stack->_typeHandle);
+            UDebug.Assert(destination != null);
+            UDebug.Assert(destinationIndex > -1);
+
+            int numToCopy = stack->_count;
+            if (numToCopy == 0)
+                return;
+
+            int srcIndex = 0;
+            int stride = stack->_items.Stride;
+            int dstIndex = destinationIndex + numToCopy;
+
+            while (srcIndex < numToCopy)
+            {
+                *(T*)((byte*)destination + (--dstIndex * stride)) = *stack->_items.Element<T>(srcIndex++);
+            }
+        }
+
+        public static T Peek<T>(UnsafeStack* stack) where T : unmanaged
+        {
+            UDebug.Assert(stack != null);
+            UDebug.Assert(stack->_items.Ptr != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == stack->_typeHandle);
+
+            var count = stack->_count - 1;
+            if ((uint)count >= (uint)stack->_items.Length)
+            {
+                throw new InvalidOperationException(STACK_EMPTY);
+            }
+
+            return *stack->_items.Element<T>(count);
+        }
+
+        public static bool TryPeek<T>(UnsafeStack* stack, out T item) where T : unmanaged
+        {
+            UDebug.Assert(stack != null);
+            UDebug.Assert(stack->_items.Ptr != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == stack->_typeHandle);
+
+            var count = stack->_count - 1;
+            if ((uint)count >= (uint)stack->_items.Length)
+            {
+                item = default;
+                return false;
+            }
+
+            item = *stack->_items.Element<T>(count);
+            return true;
+        }
+
+        public static T Pop<T>(UnsafeStack* stack) where T : unmanaged
+        {
+            UDebug.Assert(stack != null);
+            UDebug.Assert(stack->_items.Ptr != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == stack->_typeHandle);
+
+            var count = stack->_count - 1;
+            if ((uint)count >= (uint)stack->_items.Length)
+            {
+                throw new InvalidOperationException(STACK_EMPTY);
+            }
+
+            stack->_count = count;
+            return *stack->_items.Element<T>(count);
+        }
+
+        public static bool TryPop<T>(UnsafeStack* stack, out T item) where T : unmanaged
+        {
+            UDebug.Assert(stack != null);
+            UDebug.Assert(stack->_items.Ptr != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == stack->_typeHandle);
+
+            var count = stack->_count - 1;
+            if ((uint)count >= (uint)stack->_items.Length)
+            {
+                item = default;
+                return false;
+            }
+
+            stack->_count = count;
+            item = *stack->_items.Element<T>(count);
+            return true;
         }
 
         public static void Push<T>(UnsafeStack* stack, T item) where T : unmanaged
         {
             UDebug.Assert(stack != null);
+            UDebug.Assert(stack->_items.Ptr != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == stack->_typeHandle);
 
             var items = stack->_items;
-            var count = stack->_count;
-            if (count >= items.Length)
+            int count = stack->_count;
+
+            if ((uint)count < (uint)items.Length)
+            {
+                *items.Element<T>(count) = item;
+                stack->_count = count + 1;
+            }
+            else
             {
                 if (items.Dynamic == 1)
                 {
-                    Expand(stack);
-
-                    // re-assign items after expand
-                    items = stack->_items;
-
-                    // this has to hold now or something went wrong
-                    UDebug.Assert(count < items.Length);
+                    ResizeAndPush(stack, item);
                 }
                 else
                 {
                     throw new InvalidOperationException(STACK_FULL);
                 }
             }
-
-            // write element
-            *items.Element<T>(count) = item;
-
-            // increment size
-            stack->_count = count + 1;
         }
 
-        public static bool TryPop<T>(UnsafeStack* stack, out T item) where T : unmanaged
+        public static bool TryPush<T>(UnsafeStack* stack, T item) where T : unmanaged
         {
             UDebug.Assert(stack != null);
-
-            var ptr = Peek(stack);
-            if (ptr == null)
-            {
-                item = default;
-                return false;
-            }
-
-            // reduce count
-            stack->_count = stack->_count - 1;
-
-            // grab out item
-            item = *(T*)ptr;
-            return true;
-        }
-
-        public static bool TryPeek<T>(UnsafeStack* stack, out T item) where T : unmanaged
-        {
-            var ptr = Peek(stack);
-            if (ptr == null)
-            {
-                item = default;
-                return false;
-            }
-
-            item = *(T*)ptr;
-            return true;
-        }
-
-        static void* Peek(UnsafeStack* stack)
-        {
-            UDebug.Assert(stack != null);
-
-            var count = stack->_count;
-            if (count == 0)
-            {
-                return null;
-            }
+            UDebug.Assert(stack->_items.Ptr != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == stack->_typeHandle);
 
             var items = stack->_items;
-            return items.Element(count - 1);
+            int count = stack->_count;
+
+            if ((uint)count < (uint)items.Length)
+            {
+                *items.Element<T>(count) = item;
+                stack->_count = count + 1;
+
+                return true;
+            }
+            else
+            {
+                if (items.Dynamic == 1)
+                {
+                    ResizeAndPush(stack, item);
+                    return true;
+                }
+                return false;
+            }
         }
 
-        static void Expand(UnsafeStack* stack)
+        private static void ResizeAndPush<T>(UnsafeStack* stack, T item) where T : unmanaged
+        {
+            Expand(stack);
+
+            *stack->_items.Element<T>(stack->_count) = item;
+            stack->_count++;
+        }
+
+        private static void Expand(UnsafeStack* stack)
         {
             // new buffer for elements
             UnsafeBuffer newItems = default;
 
             // initialize to double size of existing one
-            UnsafeBuffer.InitDynamic(&newItems, stack->_items.Length * 2, stack->_items.Stride);
+            int newSize = stack->_items.Length == 0 ? DEFAULT_CAPACITY : stack->_items.Length * 2;
+            UnsafeBuffer.InitDynamic(&newItems, newSize, stack->_items.Stride);
 
             // copy memory over from previous items
             UnsafeBuffer.Copy(stack->_items, 0, newItems, 0, stack->_items.Length);
@@ -222,9 +325,87 @@ namespace UnsafeCollections.Collections.Unsafe
             stack->_items = newItems;
         }
 
-        public static UnsafeList.Enumerator<T> GetEnumerator<T>(UnsafeStack* stack) where T : unmanaged
+        public static Enumerator<T> GetEnumerator<T>(UnsafeStack* stack) where T : unmanaged
         {
-            return new UnsafeList.Enumerator<T>(stack->_items, 0, stack->_count);
+            UDebug.Assert(stack != null);
+            UDebug.Assert(stack->_items.Ptr != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == stack->_typeHandle);
+
+            return new Enumerator<T>(stack->_items, stack->_count);
+        }
+
+        public unsafe struct Enumerator<T> : IUnsafeEnumerator<T> where T : unmanaged
+        {
+            T* _current;
+            int _index;
+            readonly int _count;
+            UnsafeBuffer _buffer;
+
+            internal Enumerator(UnsafeBuffer buffer, int count)
+            {
+                _index = count - 1;
+                _count = count;
+                _buffer = buffer;
+                _current = default;
+            }
+
+            public void Dispose()
+            { }
+
+            public bool MoveNext()
+            {
+                if (_index < 0)
+                    return false;
+
+                if ((uint)_index >= 0)
+                {
+                    _current = _buffer.Element<T>(_index--);
+                    return true;
+                }
+
+                _current = default;
+                return false;
+            }
+
+            public void Reset()
+            {
+                _index = _count - 1;
+                _current = default;
+            }
+
+            public T Current
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get
+                {
+                    UDebug.Assert(_current != null);
+                    return *_current;
+                }
+            }
+
+            object IEnumerator.Current
+            {
+                get
+                {
+                    if (_index == 0 || _index == _count + 1)
+                        throw new InvalidOperationException();
+
+                    return Current;
+                }
+            }
+
+            public Enumerator<T> GetEnumerator()
+            {
+                return this;
+            }
+            IEnumerator<T> IEnumerable<T>.GetEnumerator()
+            {
+                return this;
+            }
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return this;
+            }
         }
     }
 }
