@@ -58,11 +58,9 @@ namespace UnsafeCollections.Collections.Unsafe
                 throw new InvalidOperationException(SET_SIZE_LESS_THAN_ONE);
             }
 
-            // round to WORD_BIT_SIZE alignment, as we operate on the bitset using WORD_SIZE
-            size = Memory.RoundToAlignment(size, Memory.GetAlignment(WORD_SIZE_BITS));
-
             var sizeOfHeader = Memory.RoundToAlignment(sizeof(UnsafeBitSet), WORD_SIZE);
-            var sizeOfBuffer = size / 8; // 8 bits per byte
+            // Round to nearest multiple of 64 bits because that is the size of the buffer
+            var sizeOfBuffer = ((size + 63) >> 6) * 8; 
 
             var ptr = Memory.MallocAndZero(sizeOfHeader + sizeOfBuffer);
             var set = (UnsafeBitSet*)ptr;
@@ -196,7 +194,7 @@ namespace UnsafeCollections.Collections.Unsafe
             return new Enumerator(set);
         }
 
-        public static int GetSetBits(UnsafeBitSet* set, UnsafeArray* array)
+        public static int ToArray(UnsafeBitSet* set, UnsafeArray* array)
         {
             UDebug.Assert(UnsafeArray.GetTypeHandle(array) == typeof(int).TypeHandle.Value);
 
@@ -295,7 +293,13 @@ namespace UnsafeCollections.Collections.Unsafe
                 throw new InvalidOperationException(SET_DIFFERENT_SIZE);
             }
 
-            return false;
+            for (var i = (set->_sizeBuckets - 1); i >= 0; --i)
+            {
+                if (set->_bits[i] != other->_bits[i])
+                    return false;
+            }
+
+            return true;
         }
 
 

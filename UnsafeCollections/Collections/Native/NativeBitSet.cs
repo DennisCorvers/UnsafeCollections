@@ -57,10 +57,12 @@ namespace UnsafeCollections.Collections.Native
 
         public bool this[int index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return UnsafeBitSet.IsSet(m_inner, index);
             }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 UnsafeBitSet.Set(m_inner, index, value);
@@ -73,6 +75,17 @@ namespace UnsafeCollections.Collections.Native
             m_inner = UnsafeBitSet.Allocate(size);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetValue(int index)
+        {
+            return this[index];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetValue(bool value, int index)
+        {
+            this[index] = value;
+        }
 
         public void Clear()
         {
@@ -85,7 +98,7 @@ namespace UnsafeCollections.Collections.Native
 
             int i = 0;
             foreach (var (bit, set) in GetEnumerator())
-                arr[i++] = (byte)bit;
+                arr[i++] = (byte)(set ? 1 : 0);
 
             return arr;
         }
@@ -112,6 +125,7 @@ namespace UnsafeCollections.Collections.Native
             m_inner = null;
         }
 
+
         public static NativeBitSet operator |(NativeBitSet set, NativeBitSet other)
         {
             UnsafeBitSet.Or(set.m_inner, other.m_inner);
@@ -128,6 +142,30 @@ namespace UnsafeCollections.Collections.Native
         {
             UnsafeBitSet.Xor(set.m_inner, other.m_inner);
             return set;
+        }
+
+        public static bool operator ==(NativeBitSet a, NativeBitSet b)
+        {
+            return UnsafeBitSet.AreEqual(a.m_inner, b.m_inner);
+        }
+
+        public static bool operator !=(NativeBitSet a, NativeBitSet b)
+        {
+            return !(a == b);
+        }
+
+        // These two are required to stop the compiler from complaining.
+        public override bool Equals(object obj)
+        {
+            if (!(obj is NativeBitSet))
+                return false;
+
+            return this == (NativeBitSet)obj;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
     }
 }

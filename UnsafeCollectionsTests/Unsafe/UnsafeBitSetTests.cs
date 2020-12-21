@@ -17,7 +17,7 @@ namespace UnsafeCollectionsTests.Unsafe
 
             UnsafeArray* setBits = UnsafeArray.Allocate<int>(UnsafeBitSet.GetSize(bitSet));
 
-            var setBitsCount = UnsafeBitSet.GetSetBits(bitSet, setBits);
+            var setBitsCount = UnsafeBitSet.ToArray(bitSet, setBits);
 
             for (int i = 0; i < setBitsCount; i++)
             {
@@ -36,7 +36,7 @@ namespace UnsafeCollectionsTests.Unsafe
             for (int i = 0; i < 8; i++)
             {
                 if (i % 2 == 0)
-                    UnsafeBitSet.Set(bitSet, i);
+                    UnsafeBitSet.Set(bitSet, i, true);
             }
 
             int index = 0;
@@ -49,6 +49,35 @@ namespace UnsafeCollectionsTests.Unsafe
             }
 
             UnsafeBitSet.Free(bitSet);
+        }
+
+        [Test]
+        public void BitSetEquals()
+        {
+            UnsafeBitSet* bitsetFirst = UnsafeBitSet.Allocate(8);
+            UnsafeBitSet* bitsetSecond = UnsafeBitSet.Allocate(8);
+
+            for (int i = 0; i < 8; i++)
+            {
+                if (i % 2 == 0)
+                {
+                    UnsafeBitSet.Set(bitsetFirst, i);
+                    UnsafeBitSet.Set(bitsetSecond, i);
+
+                }
+            }
+
+            Assert.IsTrue(UnsafeBitSet.AreEqual(bitsetFirst, bitsetSecond));
+
+            UnsafeBitSet.Free(bitsetFirst);
+        }
+
+        [Test]
+        public void OddSizeSetTest()
+        {
+            UnsafeBitSet* bs = UnsafeBitSet.Allocate(67);
+
+            Assert.AreEqual(67, UnsafeBitSet.GetSize(bs));
         }
     }
 }
