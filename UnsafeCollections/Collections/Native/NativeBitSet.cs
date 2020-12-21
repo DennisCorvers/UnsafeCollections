@@ -32,11 +32,11 @@ using UnsafeCollections.Debug.TypeProxies;
 
 namespace UnsafeCollections.Collections.Native
 {
-    [DebuggerDisplay("Count = {Count}")]
-    [DebuggerTypeProxy(typeof(NativeCollectionDebugView<>))]
-    public unsafe struct NativeQueue<T> : IDisposable, IEnumerable<T>, IEnumerable, INativeCollection<T> where T : unmanaged
+    [DebuggerDisplay("Size = {Size}")]
+    [DebuggerTypeProxy(typeof(NativeBitSetDebugView))]
+    public unsafe struct NativeBitSet : IDisposable, IEnumerable, IEnumerable<(int bit, bool set)>
     {
-        private UnsafeQueue* m_inner;
+        private UnsafeBitSet* m_inner;
 
         public bool IsCreated
         {
@@ -45,50 +45,62 @@ namespace UnsafeCollections.Collections.Native
                 return m_inner != null;
             }
         }
-        public int Count
+        public int Size
         {
             get
             {
                 if (m_inner == null)
                     throw new NullReferenceException();
-                return UnsafeQueue.GetCount(m_inner);
+                return UnsafeBitSet.GetSize(m_inner);
             }
         }
-        public int Capacity
+
+        public bool this[int index]
         {
             get
             {
-                if (m_inner == null)
-                    throw new NullReferenceException();
-                return UnsafeQueue.GetCapacity(m_inner);
+                return UnsafeBitSet.IsSet(m_inner, index);
+            }
+            set
+            {
+                UnsafeBitSet.Set(m_inner, index, value);
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal UnsafeQueue* GetInnerCollection()
+
+        public NativeBitSet(int size)
         {
-            return m_inner;
+            m_inner = UnsafeBitSet.Allocate(size);
         }
 
 
-
-
-        public T[] ToArray()
+        public void Clear()
         {
-            throw new NotImplementedException();
+            UnsafeBitSet.Clear(m_inner);
         }
 
-        public UnsafeQueue.Enumerator<T> GetEnumerator()
+        public byte[] ToArray()
         {
-            return UnsafeQueue.GetEnumerator<T>(m_inner);
+            var arr = new byte[Size];
+
+            int i = 0;
+            foreach (var (bit, set) in GetEnumerator())
+                arr[i++] = (byte)bit;
+
+            return arr;
         }
-        IEnumerator<T> IEnumerable<T>.GetEnumerator()
+
+        public UnsafeBitSet.Enumerator GetEnumerator()
         {
-            return UnsafeQueue.GetEnumerator<T>(m_inner);
+            return UnsafeBitSet.GetEnumerator(m_inner);
+        }
+        IEnumerator<(int bit, bool set)> IEnumerable<(int bit, bool set)>.GetEnumerator()
+        {
+            return UnsafeBitSet.GetEnumerator(m_inner);
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return UnsafeQueue.GetEnumerator<T>(m_inner);
+            return UnsafeBitSet.GetEnumerator(m_inner);
         }
 
 #if UNITY
@@ -96,16 +108,26 @@ namespace UnsafeCollections.Collections.Native
 #endif
         public void Dispose()
         {
-            UnsafeQueue.Free(m_inner);
+            UnsafeBitSet.Free(m_inner);
             m_inner = null;
         }
 
+        public static NativeBitSet operator |(NativeBitSet set, NativeBitSet other)
+        {
+            UnsafeBitSet.Or(set.m_inner, other.m_inner);
+            return set;
+        }
 
-    }
+        public static NativeBitSet operator &(NativeBitSet set, NativeBitSet other)
+        {
+            UnsafeBitSet.And(set.m_inner, other.m_inner);
+            return set;
+        }
 
-    //Extension methods are used to add extra constraints to <T>
-    public unsafe static class NativeQueueExtensions
-    {
-
+        public static NativeBitSet operator ^(NativeBitSet set, NativeBitSet other)
+        {
+            UnsafeBitSet.Xor(set.m_inner, other.m_inner);
+            return set;
+        }
     }
 }

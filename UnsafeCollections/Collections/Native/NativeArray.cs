@@ -99,7 +99,7 @@ namespace UnsafeCollections.Collections.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal UnsafeArray* GetUnsafeArray()
+        internal UnsafeArray* GetInnerCollection()
         {
             return m_inner;
         }
@@ -230,17 +230,17 @@ namespace UnsafeCollections.Collections.Native
     {
         public static bool Contains<T>(this NativeArray<T> array, T item) where T : unmanaged, IEquatable<T>
         {
-            return UnsafeArray.IndexOf(array.GetUnsafeArray(), item) > -1;
+            return UnsafeArray.IndexOf(array.GetInnerCollection(), item) > -1;
         }
 
         public static int IndexOf<T>(this NativeArray<T> array, T item) where T : unmanaged, IEquatable<T>
         {
-            return UnsafeArray.IndexOf(array.GetUnsafeArray(), item);
+            return UnsafeArray.IndexOf(array.GetInnerCollection(), item);
         }
 
         public static int LastIndexOf<T>(this NativeArray<T> array, T item) where T : unmanaged, IEquatable<T>
         {
-            return UnsafeArray.LastIndexOf(array.GetUnsafeArray(), item);
+            return UnsafeArray.LastIndexOf(array.GetInnerCollection(), item);
         }
     }
 }

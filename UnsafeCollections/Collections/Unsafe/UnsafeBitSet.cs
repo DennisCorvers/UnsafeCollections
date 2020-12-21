@@ -97,6 +97,18 @@ namespace UnsafeCollections.Collections.Unsafe
             Memory.ZeroMem(set->_bits, set->_sizeBuckets * WORD_SIZE);
         }
 
+        public static void Set(UnsafeBitSet* set, int bit, bool state)
+        {
+            if (state)
+            {
+                Set(set, bit);
+            }
+            else
+            {
+                Clear(set, bit);
+            }
+        }
+
         public static void Set(UnsafeBitSet* set, int bit)
         {
             if ((uint)bit >= (uint)set->_sizeBits)
@@ -274,6 +286,16 @@ namespace UnsafeCollections.Collections.Unsafe
             }
 
             return setCount;
+        }
+
+        public static bool AreEqual(UnsafeBitSet* set, UnsafeBitSet* other)
+        {
+            if (set->_sizeBits != other->_sizeBits)
+            {
+                throw new InvalidOperationException(SET_DIFFERENT_SIZE);
+            }
+
+            return false;
         }
 
 

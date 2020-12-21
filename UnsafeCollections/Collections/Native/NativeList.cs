@@ -34,9 +34,9 @@ namespace UnsafeCollections.Collections.Native
 {
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(typeof(NativeCollectionDebugView<>))]
-    public unsafe struct NativeQueue<T> : IDisposable, IEnumerable<T>, IEnumerable, INativeCollection<T> where T : unmanaged
+    public unsafe struct NativeList<T> : IDisposable, IEnumerable<T>, IEnumerable, INativeCollection<T> where T : unmanaged
     {
-        private UnsafeQueue* m_inner;
+        private UnsafeList* m_inner;
 
         public bool IsCreated
         {
@@ -51,7 +51,7 @@ namespace UnsafeCollections.Collections.Native
             {
                 if (m_inner == null)
                     throw new NullReferenceException();
-                return UnsafeQueue.GetCount(m_inner);
+                return UnsafeList.GetCount(m_inner);
             }
         }
         public int Capacity
@@ -60,12 +60,12 @@ namespace UnsafeCollections.Collections.Native
             {
                 if (m_inner == null)
                     throw new NullReferenceException();
-                return UnsafeQueue.GetCapacity(m_inner);
+                return UnsafeList.GetCapacity(m_inner);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal UnsafeQueue* GetInnerCollection()
+        internal UnsafeList* GetInnerCollection()
         {
             return m_inner;
         }
@@ -78,17 +78,17 @@ namespace UnsafeCollections.Collections.Native
             throw new NotImplementedException();
         }
 
-        public UnsafeQueue.Enumerator<T> GetEnumerator()
+        public UnsafeList.Enumerator<T> GetEnumerator()
         {
-            return UnsafeQueue.GetEnumerator<T>(m_inner);
+            return UnsafeList.GetEnumerator<T>(m_inner);
         }
         IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            return UnsafeQueue.GetEnumerator<T>(m_inner);
+            return UnsafeList.GetEnumerator<T>(m_inner);
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return UnsafeQueue.GetEnumerator<T>(m_inner);
+            return UnsafeList.GetEnumerator<T>(m_inner);
         }
 
 #if UNITY
@@ -96,7 +96,7 @@ namespace UnsafeCollections.Collections.Native
 #endif
         public void Dispose()
         {
-            UnsafeQueue.Free(m_inner);
+            UnsafeList.Free(m_inner);
             m_inner = null;
         }
 
@@ -104,7 +104,7 @@ namespace UnsafeCollections.Collections.Native
     }
 
     //Extension methods are used to add extra constraints to <T>
-    public unsafe static class NativeQueueExtensions
+    public unsafe static class NativeListExtensions
     {
 
     }
