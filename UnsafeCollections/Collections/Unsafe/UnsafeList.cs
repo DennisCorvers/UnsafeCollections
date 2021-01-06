@@ -1,7 +1,7 @@
 ﻿/*
 The MIT License (MIT)
 
-Copyright (c) 2020 Dennis Corvers
+Copyright (c) 2021 Dennis Corvers
 
 This software is based on, a modification of and/or an extention 
 of "UnsafeCollections" originally authored by:
