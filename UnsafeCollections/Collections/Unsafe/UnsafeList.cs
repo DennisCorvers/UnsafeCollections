@@ -136,6 +136,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             UDebug.Assert(list != null);
             UDebug.Assert(list->_items.Ptr != null);
+            UDebug.Assert(capacity > 0);
 
             if (list->_items.Dynamic == 0)
             {
@@ -145,21 +146,6 @@ namespace UnsafeCollections.Collections.Unsafe
             // no change in capacity
             if (capacity == list->_items.Length)
             {
-                return;
-            }
-
-            // tried to set to zero or negative, so free items
-            if (capacity <= 0)
-            {
-                // have to make sure to set count to 0
-                list->_count = 0;
-
-                // and clear memory for items
-                if (list->_items.Ptr != null)
-                {
-                    UnsafeBuffer.Free(&list->_items);
-                }
-
                 return;
             }
 
@@ -373,6 +359,21 @@ namespace UnsafeCollections.Collections.Unsafe
             return true;
         }
 
+        public static void CopyTo<T>(UnsafeList* list, void* destination, int destinationIndex) where T : unmanaged
+        {
+            UDebug.Assert(list != null);
+            UDebug.Assert(list->_items.Ptr != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == list->_typeHandle);
+            UDebug.Assert(destination != null);
+            UDebug.Assert(destinationIndex > -1);
+
+            int numToCopy = list->_count;
+            if (numToCopy == 0)
+                return;
+
+            UnsafeBuffer.CopyTo<T>(list->_items, 0, destination, destinationIndex, numToCopy);
+        }
+
         public static Enumerator<T> GetEnumerator<T>(UnsafeList* list) where T : unmanaged
         {
             UDebug.Assert(list != null);
@@ -392,7 +393,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
             internal Enumerator(UnsafeBuffer buffer, int offset, int count)
             {
-                _index = 0;
+                _index = -1;
                 _count = count;
                 _offset = offset;
                 _buffer = buffer;
@@ -400,24 +401,37 @@ namespace UnsafeCollections.Collections.Unsafe
             }
 
             public void Dispose()
-            { }
+            {
+                _index = -1;
+                _current = default;
+            }
 
             public bool MoveNext()
             {
-                if ((uint)_index < (uint)_count)
+                _index++;
+
+                if (_index == _count)
                 {
-                    _current = _buffer.Element<T>((_offset + _index) % _buffer.Length);
-                    _index++;
-                    return true;
+                    _index = 0;
+                    _current = default;
+                    return false;
                 }
 
-                _current = default;
-                return false;
+                int capacity = _buffer.Length;
+                int arrayIndex = _offset + _index;
+
+                if (arrayIndex >= capacity)
+                {
+                    arrayIndex -= capacity; // wrap around if needed
+                }
+
+                _current = _buffer.Element<T>(arrayIndex);
+                return true;
             }
 
             public void Reset()
             {
-                _index = 0;
+                _index = -1;
                 _current = default;
             }
 

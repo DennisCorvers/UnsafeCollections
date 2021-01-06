@@ -164,6 +164,8 @@ namespace UnsafeCollectionsTests.Unsafe
                 num++;
             }
 
+            Assert.AreEqual(num, UnsafeQueue.GetCount(q));
+
             UnsafeQueue.Free(q);
         }
 

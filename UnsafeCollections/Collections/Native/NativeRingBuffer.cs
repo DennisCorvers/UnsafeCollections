@@ -33,8 +33,8 @@ using UnsafeCollections.Debug.TypeProxies;
 namespace UnsafeCollections.Collections.Native
 {
     [DebuggerDisplay("Count = {Count}")]
-    [DebuggerTypeProxy(typeof(NativeCollectionDebugView<>))]
-    public unsafe struct NativeRingBuffer<T> : IDisposable, IEnumerable<T>, IEnumerable, INativeCollection<T> where T : unmanaged
+    [DebuggerTypeProxy(typeof(NativeReadOnlyCollectionDebugView<>))]
+    public unsafe struct NativeRingBuffer<T> : INativeReadOnlyCollection<T> where T : unmanaged
     {
         private UnsafeRingBuffer* m_inner;
 
@@ -63,6 +63,30 @@ namespace UnsafeCollections.Collections.Native
                 return UnsafeRingBuffer.GetCapacity(m_inner);
             }
         }
+        public bool IsFull
+        {
+            get
+            {
+                if (m_inner == null)
+                    throw new NullReferenceException();
+                return UnsafeRingBuffer.IsFull(m_inner);
+            }
+        }
+
+        public T this[int index]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return UnsafeRingBuffer.Get<T>(m_inner, index);
+            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                UnsafeRingBuffer.Set(m_inner, index, value);
+            }
+        }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal UnsafeRingBuffer* GetInnerCollection()
@@ -70,13 +94,74 @@ namespace UnsafeCollections.Collections.Native
             return m_inner;
         }
 
+        public NativeRingBuffer(int capacity)
+        {
+            m_inner = UnsafeRingBuffer.Allocate<T>(capacity);
+        }
+
+        public NativeRingBuffer(int capacity, bool overwrite)
+        {
+            m_inner = UnsafeRingBuffer.Allocate<T>(capacity, overwrite);
+        }
 
 
+        public void Clear()
+        {
+            UnsafeRingBuffer.Clear(m_inner);
+        }
+
+        public ref T GetRef(int index)
+        {
+            return ref UnsafeRingBuffer.GetRef<T>(m_inner, index);
+        }
+
+
+        public bool Push(T item)
+        {
+            return UnsafeRingBuffer.Push(m_inner, item);
+        }
+
+        public bool Pop(out T value)
+        {
+            return UnsafeRingBuffer.Pop(m_inner, out value);
+        }
+
+        public bool Peek(out T value)
+        {
+            return UnsafeRingBuffer.Peek(m_inner, out value);
+        }
+
+
+        public void CopyTo(T[] array, int arrayIndex)
+        {
+            if (array == null)
+                throw new ArgumentNullException(nameof(array));
+
+            if ((uint)arrayIndex > array.Length)
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+
+            if (array.Length - arrayIndex < Count)
+                throw new ArgumentException("Insufficient space in the target location to copy the information.");
+
+            if (array.Length == 0)
+                return;
+
+            fixed (void* ptr = array)
+                UnsafeRingBuffer.CopyTo<T>(m_inner, ptr, arrayIndex);
+        }
 
         public T[] ToArray()
         {
-            throw new NotImplementedException();
+            if (Count == 0)
+                return Array.Empty<T>();
+
+            var arr = new T[Count];
+
+            CopyTo(arr, 0);
+
+            return arr;
         }
+
 
         public UnsafeList.Enumerator<T> GetEnumerator()
         {
@@ -99,13 +184,14 @@ namespace UnsafeCollections.Collections.Native
             UnsafeRingBuffer.Free(m_inner);
             m_inner = null;
         }
-
-
     }
 
     //Extension methods are used to add extra constraints to <T>
     public unsafe static class NativeRingBufferExtensions
     {
-
+        public static bool Contains<T>(this NativeRingBuffer<T> ringBuffer, T item) where T : unmanaged, IEquatable<T>
+        {
+            return UnsafeRingBuffer.Contains(ringBuffer.GetInnerCollection(), item);
+        }
     }
 }

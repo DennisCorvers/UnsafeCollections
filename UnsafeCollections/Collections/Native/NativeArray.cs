@@ -37,7 +37,7 @@ namespace UnsafeCollections.Collections.Native
 {
     [DebuggerDisplay("Length = {Length}")]
     [DebuggerTypeProxy(typeof(NativeArrayDebugView<>))]
-    public unsafe struct NativeArray<T> : IDisposable, IEnumerable<T>, IEnumerable, INativeArray<T> where T : unmanaged
+    public unsafe struct NativeArray<T> : INativeArray<T> where T : unmanaged
     {
         private UnsafeArray* m_inner;
 

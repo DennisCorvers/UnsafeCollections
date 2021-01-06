@@ -34,7 +34,7 @@ namespace UnsafeCollections.Collections.Native
 {
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(typeof(NativeCollectionDebugView<>))]
-    public unsafe struct NativeStack<T> : IDisposable, IEnumerable<T>, IEnumerable, INativeCollection<T> where T : unmanaged
+    public unsafe struct NativeStack<T> : INativeCollection<T> where T : unmanaged
     {
         private UnsafeStack* m_inner;
 
@@ -62,6 +62,10 @@ namespace UnsafeCollections.Collections.Native
                     throw new NullReferenceException();
                 return UnsafeStack.GetCapacity(m_inner);
             }
+        }
+        public bool IsReadOnly
+        {
+            get { return false; }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -100,7 +104,30 @@ namespace UnsafeCollections.Collections.Native
             m_inner = null;
         }
 
+        public void Add(T item)
+        {
+            throw new NotImplementedException();
+        }
 
+        public void Clear()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Contains(T item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CopyTo(T[] array, int arrayIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Remove(T item)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     //Extension methods are used to add extra constraints to <T>

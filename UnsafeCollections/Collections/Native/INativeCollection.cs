@@ -22,23 +22,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+using System;
+using System.Collections;
+using System.Collections.Generic;
+
 namespace UnsafeCollections.Collections.Native
 {
-    internal interface INativeCollection<T> where T : unmanaged
+    internal interface INativeCollection<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IDisposable where T : unmanaged
     {
         /// <summary>
         /// Returns 'True' if the underlying buffer is allocated.
         /// </summary>
         bool IsCreated { get; }
-
-        /// <summary>
-        /// The number of items in the collection
-        /// </summary>
-        int Count { get; }
-
-        /// <summary>
-        /// Copies a collection into an array.
-        /// </summary>
-        T[] ToArray();
     }
 }

@@ -141,7 +141,7 @@ namespace UnsafeCollections.Collections.Unsafe
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void MoveNext(int length, ref int index)
         {
-            //Taken from the .NET Core implementation:
+            // Taken from the .NET Core implementation:
             // It is tempting to use the remainder operator here but it is actually much slower
             // than a simple comparison and a rarely taken branch.
             // JIT produces better code than with ternary operator ?:
@@ -181,7 +181,7 @@ namespace UnsafeCollections.Collections.Unsafe
             *items.Element<T>(tail) = item;
 
             // increment count and head index
-            queue->_count = (count + 1);
+            queue->_count++;
             MoveNext(items.Length, ref queue->_tail);
         }
 
@@ -366,99 +366,13 @@ namespace UnsafeCollections.Collections.Unsafe
             queue->_tail = queue->_count % queue->_items.Length;
         }
 
-        public static Enumerator<T> GetEnumerator<T>(UnsafeQueue* queue) where T : unmanaged
+        public static UnsafeList.Enumerator<T> GetEnumerator<T>(UnsafeQueue* queue) where T : unmanaged
         {
             UDebug.Assert(queue != null);
             UDebug.Assert(queue->_items.Ptr != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == queue->_typeHandle);
 
-            return new Enumerator<T>(queue);
-        }
-
-        public unsafe struct Enumerator<T> : IUnsafeEnumerator<T> where T : unmanaged
-        {
-            readonly UnsafeQueue* _queue;
-            int _index;
-            T* _current;
-
-            internal Enumerator(UnsafeQueue* queue)
-            {
-                _queue = queue;
-                _index = -1;
-                _current = default;
-            }
-
-            public void Dispose()
-            {
-                _index = -2;
-                _current = default;
-            }
-
-            public bool MoveNext()
-            {
-                if (_index == -2)
-                    return false;
-
-                _index++;
-
-                if (_index == _queue->_count)
-                {
-                    _index = -2;
-                    _current = default;
-                    return false;
-                }
-
-                int capacity = _queue->_items.Length;
-                int arrayIndex = _queue->_head + _index;
-
-                if (arrayIndex >= capacity)
-                {
-                    arrayIndex -= capacity; // wrap around if needed
-                }
-
-                _current = _queue->_items.Element<T>(arrayIndex);
-                return true;
-            }
-
-            public void Reset()
-            {
-                _index = -1;
-                _current = default;
-            }
-
-            public T Current
-            {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get
-                {
-                    UDebug.Assert(_current != null);
-                    return *_current;
-                }
-            }
-
-            object IEnumerator.Current
-            {
-                get
-                {
-                    if (_index < 0)
-                        throw new InvalidOperationException();
-
-                    return Current;
-                }
-            }
-
-            public Enumerator<T> GetEnumerator()
-            {
-                return this;
-            }
-            IEnumerator<T> IEnumerable<T>.GetEnumerator()
-            {
-                return this;
-            }
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return this;
-            }
+            return new UnsafeList.Enumerator<T>(queue->_items, queue->_head, queue->_count);
         }
     }
 }

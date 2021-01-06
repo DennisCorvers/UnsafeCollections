@@ -33,8 +33,8 @@ using UnsafeCollections.Debug.TypeProxies;
 namespace UnsafeCollections.Collections.Native
 {
     [DebuggerDisplay("Count = {Count}")]
-    [DebuggerTypeProxy(typeof(NativeCollectionDebugView<>))]
-    public unsafe struct NativeQueue<T> : IDisposable, IEnumerable<T>, IEnumerable, INativeCollection<T> where T : unmanaged
+    [DebuggerTypeProxy(typeof(NativeReadOnlyCollectionDebugView<>))]
+    public unsafe struct NativeQueue<T> : INativeReadOnlyCollection<T> where T : unmanaged
     {
         private UnsafeQueue* m_inner;
 
@@ -63,6 +63,16 @@ namespace UnsafeCollections.Collections.Native
                 return UnsafeQueue.GetCapacity(m_inner);
             }
         }
+        public bool IsFixedSize
+        {
+            get
+            {
+                if (m_inner == null)
+                    throw new NullReferenceException();
+                return UnsafeQueue.IsFixedSize(m_inner);
+            }
+        }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal UnsafeQueue* GetInnerCollection()
@@ -70,15 +80,85 @@ namespace UnsafeCollections.Collections.Native
             return m_inner;
         }
 
+        public NativeQueue(int capacity)
+        {
+            m_inner = UnsafeQueue.Allocate<T>(capacity, false);
+        }
 
+        public NativeQueue(int capacity, bool fixedSize)
+        {
+            m_inner = UnsafeQueue.Allocate<T>(capacity, fixedSize);
+        }
+
+
+        public void Clear()
+        {
+            UnsafeQueue.Clear(m_inner);
+        }
+
+        public void Enqueue(T item)
+        {
+            UnsafeQueue.Enqueue(m_inner, item);
+        }
+
+        public bool TryEnqueue(T item)
+        {
+            return UnsafeQueue.TryEnqueue(m_inner, item);
+        }
+
+        public T Dequeue()
+        {
+            return UnsafeQueue.Dequeue<T>(m_inner);
+        }
+
+        public bool TryDequeue(out T result)
+        {
+            return UnsafeQueue.TryDequeue(m_inner, out result);
+        }
+
+        public T Peek()
+        {
+            return UnsafeQueue.Peek<T>(m_inner);
+        }
+
+        public bool TryPeek(out T result)
+        {
+            return UnsafeQueue.TryPeek<T>(m_inner, out result);
+        }
 
 
         public T[] ToArray()
         {
-            throw new NotImplementedException();
+            if (Count == 0)
+                return Array.Empty<T>();
+
+            var arr = new T[Count];
+
+            CopyTo(arr, 0);
+
+            return arr;
         }
 
-        public UnsafeQueue.Enumerator<T> GetEnumerator()
+        public void CopyTo(T[] array, int arrayIndex)
+        {
+            if (array == null)
+                throw new ArgumentNullException(nameof(array));
+
+            if ((uint)arrayIndex > array.Length)
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+
+            if (array.Length - arrayIndex < Count)
+                throw new ArgumentException("Insufficient space in the target location to copy the information.");
+
+            if (array.Length == 0)
+                return;
+
+            fixed (void* ptr = array)
+                UnsafeQueue.CopyTo<T>(m_inner, ptr, arrayIndex);
+        }
+
+
+        public UnsafeList.Enumerator<T> GetEnumerator()
         {
             return UnsafeQueue.GetEnumerator<T>(m_inner);
         }
@@ -99,13 +179,14 @@ namespace UnsafeCollections.Collections.Native
             UnsafeQueue.Free(m_inner);
             m_inner = null;
         }
-
-
     }
 
     //Extension methods are used to add extra constraints to <T>
     public unsafe static class NativeQueueExtensions
     {
-
+        public static bool Contains<T>(this NativeQueue<T> queue, T item) where T : unmanaged, IEquatable<T>
+        {
+            return UnsafeQueue.Contains(queue.GetInnerCollection(), item);
+        }
     }
 }
