@@ -117,5 +117,28 @@ namespace UnsafeCollectionsTests.Unsafe
             Assert.IsTrue(UnsafeStack.Contains(arr, 10));
             Assert.IsFalse(UnsafeStack.Contains(arr, 11));
         }
+
+        [Test]
+        public void CopyToTest()
+        {
+            var q = UnsafeStack.Allocate<int>(10);
+
+            for (int i = 0; i < 10; i++)
+            {
+                UnsafeStack.Push(q, i);
+            }
+
+            var arr = new int[10];
+            fixed (void* ptr = arr)
+            {
+                UnsafeStack.CopyTo<int>(q, ptr, 0);
+            }
+
+            int num = 10;
+            for (int i = 0; i < 10; i++)
+            {
+                Assert.AreEqual(--num, arr[i]);
+            }
+        }
     }
 }

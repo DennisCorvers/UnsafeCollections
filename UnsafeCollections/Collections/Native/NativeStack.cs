@@ -33,8 +33,8 @@ using UnsafeCollections.Debug.TypeProxies;
 namespace UnsafeCollections.Collections.Native
 {
     [DebuggerDisplay("Count = {Count}")]
-    [DebuggerTypeProxy(typeof(NativeCollectionDebugView<>))]
-    public unsafe struct NativeStack<T> : INativeCollection<T> where T : unmanaged
+    [DebuggerTypeProxy(typeof(NativeReadOnlyCollectionDebugView<>))]
+    public unsafe struct NativeStack<T> : INativeReadOnlyCollection<T> where T : unmanaged
     {
         private UnsafeStack* m_inner;
 
@@ -63,9 +63,14 @@ namespace UnsafeCollections.Collections.Native
                 return UnsafeStack.GetCapacity(m_inner);
             }
         }
-        public bool IsReadOnly
+        public bool IsFixedSize
         {
-            get { return false; }
+            get
+            {
+                if (m_inner == null)
+                    throw new NullReferenceException();
+                return UnsafeStack.IsFixedSize(m_inner);
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -74,12 +79,76 @@ namespace UnsafeCollections.Collections.Native
             return m_inner;
         }
 
+        public NativeStack(int capacity)
+        {
+            m_inner = UnsafeStack.Allocate<T>(capacity);
+        }
+
+        public NativeStack(int capacity, bool fixedSize)
+        {
+            m_inner = UnsafeStack.Allocate<T>(capacity, fixedSize);
+        }
 
 
+        public T Peek()
+        {
+            return UnsafeStack.Peek<T>(m_inner);
+        }
+
+        public bool TryPeek(out T item)
+        {
+            return UnsafeStack.TryPeek<T>(m_inner, out item);
+        }
+
+        public T Pop()
+        {
+            return UnsafeStack.Pop<T>(m_inner);
+        }
+
+        public bool TryPop(out T item)
+        {
+            return UnsafeStack.TryPop<T>(m_inner, out item);
+        }
+
+        public void Push(T item)
+        {
+            UnsafeStack.Push(m_inner, item);
+        }
+
+        public bool TryPush(T item)
+        {
+            return UnsafeStack.TryPush<T>(m_inner, item);
+        }
+
+
+        public void CopyTo(T[] array, int arrayIndex)
+        {
+            if (array == null)
+                throw new ArgumentNullException(nameof(array));
+
+            if ((uint)arrayIndex > array.Length)
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+
+            if (array.Length - arrayIndex < Count)
+                throw new ArgumentException("Insufficient space in the target location to copy the information.");
+
+            if (array.Length == 0)
+                return;
+
+            fixed (void* ptr = array)
+                UnsafeStack.CopyTo<T>(m_inner, ptr, arrayIndex);
+        }
 
         public T[] ToArray()
         {
-            throw new NotImplementedException();
+            if (Count == 0)
+                return Array.Empty<T>();
+
+            var arr = new T[Count];
+
+            CopyTo(arr, 0);
+
+            return arr;
         }
 
         public UnsafeStack.Enumerator<T> GetEnumerator()
@@ -103,36 +172,14 @@ namespace UnsafeCollections.Collections.Native
             UnsafeStack.Free(m_inner);
             m_inner = null;
         }
-
-        public void Add(T item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Clear()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Contains(T item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void CopyTo(T[] array, int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Remove(T item)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     //Extension methods are used to add extra constraints to <T>
     public unsafe static class NativeStackExtensions
     {
-
+        public static bool Contains<T>(this NativeStack<T> stack, T item) where T : unmanaged, IEquatable<T>
+        {
+            return UnsafeStack.Contains(stack.GetInnerCollection(), item);
+        }
     }
 }

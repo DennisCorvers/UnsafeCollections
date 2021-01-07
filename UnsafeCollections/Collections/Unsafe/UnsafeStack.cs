@@ -339,37 +339,39 @@ namespace UnsafeCollections.Collections.Unsafe
             T* _current;
             int _index;
             readonly int _count;
-            UnsafeBuffer _buffer;
+            readonly UnsafeBuffer _buffer;
 
             internal Enumerator(UnsafeBuffer buffer, int count)
             {
-                _index = count - 1;
+                _index = count;
                 _count = count;
                 _buffer = buffer;
                 _current = default;
             }
 
             public void Dispose()
-            { }
+            {
+                _index = _count;
+                _current = default;
+            }
 
             public bool MoveNext()
             {
-                if (_index < 0)
-                    return false;
+                _index--;
 
-                if ((uint)_index >= 0)
+                if (_index < 0)
                 {
-                    _current = _buffer.Element<T>(_index--);
-                    return true;
+                    _current = default;
+                    return false;
                 }
 
-                _current = default;
-                return false;
+                _current = _buffer.Element<T>(_index);
+                return true;
             }
 
             public void Reset()
             {
-                _index = _count - 1;
+                _index = _count;
                 _current = default;
             }
 
