@@ -210,6 +210,104 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
             UnsafeMPMCQueue.Free(q);
         }
 
+        [Test]
+        public void IteratorSingleSegmentTest()
+        {
+            UnsafeMPMCQueue* q = UnsafeMPMCQueue.Allocate<int>(10);
+
+            for (int i = 0; i < 10; i++)
+                UnsafeMPMCQueue.TryEnqueue<int>(q, i);
+
+            var enumerator = UnsafeMPMCQueue.GetEnumerator<int>(q);
+
+            int ii = 0;
+            foreach (int num in enumerator)
+            {
+                Assert.AreEqual(ii, num);
+                ii++;
+            }
+
+            Assert.AreEqual(10, ii);
+
+            UnsafeMPMCQueue.Free(q);
+        }
+
+        [Test]
+        public void IteratorMultiSegmentTest()
+        {
+            UnsafeMPMCQueue* q = UnsafeMPMCQueue.Allocate<int>(8);
+
+            // Enqueue large amount so we get multiple segments.
+            for (int i = 0; i < 50; i++)
+                UnsafeMPMCQueue.TryEnqueue(q, i);
+
+            var enumerator = UnsafeMPMCQueue.GetEnumerator<int>(q);
+
+            int ii = 0;
+            foreach (int num in enumerator)
+            {
+                Assert.AreEqual(ii, num);
+                ii++;
+            }
+
+            Assert.AreEqual(50, ii);
+
+            UnsafeMPMCQueue.Free(q);
+        }
+
+        [Test]
+        public void IteratorSplitTest()
+        {
+            var q = UnsafeMPMCQueue.Allocate<int>(10);
+
+            // Wrap tail around
+            SplitQueue(q);
+
+            for (int i = 10; i < 50; i++)
+                UnsafeMPMCQueue.TryEnqueue<int>(q, i);
+
+            // Iterator should start from the head.
+            int num = 0;
+            foreach (int i in UnsafeMPMCQueue.GetEnumerator<int>(q))
+            {
+                Assert.AreEqual(num, i);
+                num++;
+            }
+
+            // Iterated 50 items
+            Assert.AreEqual(50, num);
+            UnsafeMPMCQueue.Free(q);
+        }
+
+        [Test]
+        public void IteratorConcurrencyTest()
+        {
+            var q = UnsafeMPMCQueue.Allocate<int>(16000);
+            int count = 10000;
+
+            Thread writer = new Thread(() =>
+            {
+                for (int i = 0; i < count;)
+                    if (UnsafeMPMCQueue.TryEnqueue(q, i))
+                        i++;
+            });
+
+            writer.Start();
+
+            Thread.Sleep(3); // Wait some arbitrary time so there's data to enumerate
+
+            var enumerator = UnsafeMPMCQueue.GetEnumerator<int>(q);
+            int num = 0;
+            foreach (int i in enumerator)
+                Assert.AreEqual(num++, i);
+
+            writer.Join();
+
+            Assert.AreEqual(count, UnsafeMPMCQueue.GetCount(q));
+
+            UnsafeMPMCQueue.Free(q);
+        }
+
 #if DEBUG
         [Test]
         public void InvalidTypeTest()
