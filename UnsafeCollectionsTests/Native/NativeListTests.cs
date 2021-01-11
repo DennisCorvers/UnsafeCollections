@@ -57,5 +57,18 @@ namespace UnsafeCollectionsTests.Native
 
             ((NativeList<int>)list).Dispose();
         }
+
+        [Test]
+        public void ToNativeArrayTest()
+        {
+            NativeList<int> list = new NativeList<int>(10);
+
+            for (int i = 0; i < 10; i++)
+                list.Add((i + 1) * i);
+
+            var arr = list.ToNativeArray();
+
+            System.Linq.Enumerable.SequenceEqual(list, arr);
+        }
     }
 }

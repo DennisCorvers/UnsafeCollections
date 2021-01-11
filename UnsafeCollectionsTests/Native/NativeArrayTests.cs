@@ -90,8 +90,7 @@ namespace UnsafeCollectionsTests.Native
 
             var intArr = arr.ToArray();
 
-            for (int i = 0; i < 10; i++)
-                Assert.AreEqual(i, intArr[i]);
+            Assert.IsTrue(System.Linq.Enumerable.SequenceEqual(arr, intArr));
 
             arr.Dispose();
         }
@@ -122,6 +121,14 @@ namespace UnsafeCollectionsTests.Native
             Assert.AreEqual(5, arr.LastIndexOf(5));
 
             arr.Dispose();
+        }
+
+        [Test]
+        public void EmptyArrayTest()
+        {
+            var arr = NativeArray.Empty<int>();
+
+            Assert.AreEqual(0, arr.Length);
         }
     }
 }

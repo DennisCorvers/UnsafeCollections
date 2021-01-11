@@ -52,7 +52,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static UnsafeArray* Allocate<T>(int size) where T : unmanaged
         {
-            if (size < 1)
+            if (size < 0)
             {
                 throw new InvalidOperationException(ARRAY_SIZE_LESS_THAN_ONE);
             }

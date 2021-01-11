@@ -151,6 +151,17 @@ namespace UnsafeCollections.Collections.Native
             return arr;
         }
 
+        public NativeArray<T> ToNativeArray()
+        {
+            if (Count == 0)
+                return NativeArray.Empty<T>();
+
+            var arr = new NativeArray<T>(Count);
+            UnsafeStack.CopyTo<T>(m_inner, UnsafeArray.GetBuffer(arr.GetInnerCollection()), 0);
+
+            return arr;
+        }
+
         public UnsafeStack.Enumerator<T> GetEnumerator()
         {
             return UnsafeStack.GetEnumerator<T>(m_inner);

@@ -36,6 +36,9 @@ namespace UnsafeCollections.Collections.Native
         /// </summary>
         bool IsCreated { get; }
 
+        /// <summary>
+        /// Copies the collection into the provided array.
+        /// </summary>
         void CopyTo(T[] array, int arrayIndex);
     }
 }

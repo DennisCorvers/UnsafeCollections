@@ -37,7 +37,7 @@ namespace UnsafeCollections.Collections.Native
 {
     [DebuggerDisplay("Length = {Length}")]
     [DebuggerTypeProxy(typeof(NativeArrayDebugView<>))]
-    public unsafe struct NativeArray<T> : INativeArray<T> where T : unmanaged
+    public unsafe partial struct NativeArray<T> : INativeArray<T> where T : unmanaged
     {
         private UnsafeArray* m_inner;
 
@@ -187,7 +187,6 @@ namespace UnsafeCollections.Collections.Native
             return UnsafeArray.FindLastIndex<T>(m_inner, predicate);
         }
 
-
         public T[] ToArray()
         {
             if (Length == 0)
@@ -221,11 +220,21 @@ namespace UnsafeCollections.Collections.Native
             UnsafeArray.Free(m_inner);
             m_inner = null;
         }
-
-
     }
 
-    //Extension methods are used to add extra constraints to <T>
+    // Partial class is used to achieve the same syntax as .NET's Array.Empty<T>
+    public unsafe partial struct NativeArray
+    {
+        /// <summary>
+        /// Returns an empty array.
+        /// </summary>
+        public static NativeArray<T> Empty<T>() where T : unmanaged
+        {
+            return new NativeArray<T>(0);
+        }
+    }
+
+    // Extension methods are used to add extra constraints to <T>
     public unsafe static class NativeArrayExtensions
     {
         public static bool Contains<T>(this NativeArray<T> array, T item) where T : unmanaged, IEquatable<T>

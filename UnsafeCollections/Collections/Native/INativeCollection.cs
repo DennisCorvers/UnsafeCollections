@@ -34,5 +34,10 @@ namespace UnsafeCollections.Collections.Native
         /// Returns 'True' if the underlying buffer is allocated.
         /// </summary>
         bool IsCreated { get; }
+
+        /// <summary>
+        /// Copies the collection into a NativeArray.
+        /// </summary>
+        NativeArray<T> ToNativeArray();
     }
 }

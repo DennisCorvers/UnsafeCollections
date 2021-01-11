@@ -468,5 +468,8 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 
             queue->_crossSegmentLock.Unlock();
         }
+
+        // TODO: Implement Enumerator and CopyTo functions
+        // Implement Yield-like statemachine for enumerator. See: https://csharpindepth.com/Articles/IteratorBlockImplementation
     }
 }
