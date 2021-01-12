@@ -32,15 +32,12 @@ namespace UnsafeCollections.Collections.Unsafe
     public unsafe struct UnsafeOrderedSet
     {
         UnsafeOrderedCollection _collection;
+        IntPtr _typeHandle;
 
         public static UnsafeOrderedSet* Allocate<T>(int capacity, bool fixedSize = false)
-          where T : unmanaged, IComparable<T>
+            where T : unmanaged, IComparable<T>
         {
-            return Allocate(capacity, sizeof(T), fixedSize);
-        }
-
-        public static UnsafeOrderedSet* Allocate(int capacity, int valStride, bool fixedSize = false)
-        {
+            var valStride = sizeof(T);
             var entryStride = sizeof(UnsafeOrderedCollection.Entry);
             var valAlignment = Memory.GetAlignment(valStride);
 
@@ -81,6 +78,7 @@ namespace UnsafeCollections.Collections.Unsafe
             set->_collection.FreeCount = 0;
             set->_collection.UsedCount = 0;
             set->_collection.KeyOffset = entryStride;
+            set->_typeHandle = typeof(T).TypeHandle.Value;
 
             return set;
         }
@@ -102,34 +100,86 @@ namespace UnsafeCollections.Collections.Unsafe
             Memory.Free(set);
         }
 
-        public static Enumerator<T> GetEnumerator<T>(UnsafeOrderedSet* set) where T : unmanaged
-        {
-            return new Enumerator<T>(set);
-        }
-
         public static int GetCount(UnsafeOrderedSet* set)
         {
+            UDebug.Assert(set != null);
+
             return UnsafeOrderedCollection.GetCount(&set->_collection);
         }
 
-        public static void Add<T>(UnsafeOrderedSet* set, T item)
-          where T : unmanaged, IComparable<T>
+        public static int GetCapacity(UnsafeOrderedSet* set)
         {
+            UDebug.Assert(set != null);
+
+            return set->_collection.Entries.Length;
+        }
+
+        public static bool IsFixedSize(UnsafeOrderedSet* set)
+        {
+            UDebug.Assert(set != null);
+
+            return set->_collection.Entries.Dynamic == 0;
+        }
+
+        public static void Add<T>(UnsafeOrderedSet* set, T item)
+            where T : unmanaged, IComparable<T>
+        {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+
             UnsafeOrderedCollection.Insert<T>(&set->_collection, item);
         }
 
-        public static void Remove<T>(UnsafeOrderedSet* set, T item)
-          where T : unmanaged, IComparable<T>
+        public static bool Remove<T>(UnsafeOrderedSet* set, T item)
+            where T : unmanaged, IComparable<T>
         {
-            UnsafeOrderedCollection.Remove<T>(&set->_collection, item);
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+
+            return UnsafeOrderedCollection.Remove<T>(&set->_collection, item);
         }
 
         public static bool Contains<T>(UnsafeOrderedSet* set, T item)
-          where T : unmanaged, IComparable<T>
+            where T : unmanaged, IComparable<T>
         {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+
             return UnsafeOrderedCollection.Find<T>(&set->_collection, item) != null;
         }
 
+        public static void Clear(UnsafeOrderedSet* set)
+        {
+            UDebug.Assert(set != null);
+
+            UnsafeOrderedCollection.Clear(&set->_collection);
+        }
+
+        public static void CopyTo<T>(UnsafeOrderedSet* set, void* destination, int destinationIndex)
+            where T : unmanaged
+        {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+            UDebug.Assert(destination != null);
+
+            var enumerator = GetEnumerator<T>(set);
+            var dest = (T*)destination;
+
+            int i = 0;
+            while (enumerator.MoveNext())
+            {
+                dest[destinationIndex + i] = enumerator.Current;
+                i++;
+            }
+        }
+
+        public static Enumerator<T> GetEnumerator<T>(UnsafeOrderedSet* set) where T : unmanaged
+        {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+
+            return new Enumerator<T>(set);
+        }
 
         public unsafe struct Enumerator<T> : IUnsafeEnumerator<T> where T : unmanaged
         {

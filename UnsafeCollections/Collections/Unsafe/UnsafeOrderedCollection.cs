@@ -61,9 +61,25 @@ namespace UnsafeCollections.Collections.Unsafe
             return collection->UsedCount - collection->FreeCount;
         }
 
-        public static void Remove<T>(UnsafeOrderedCollection* collection, T key) where T : unmanaged, IComparable<T>
+        public static void Clear(UnsafeOrderedCollection* collection)
         {
+            collection->Root = 0;
+            collection->UsedCount = 0;
+
+            collection->FreeHead = 0;
+            collection->FreeCount = 0;
+
+            collection->Entries.Clear();
+        }
+
+        public static bool Remove<T>(UnsafeOrderedCollection* collection, T key) where T : unmanaged, IComparable<T>
+        {
+            int preCount = GetCount(collection);
+            if (preCount == 0) return false;
+
             collection->Root = DeletePerform<T>(collection, key);
+
+            return preCount != GetCount(collection);
         }
 
         public static void Insert<T>(UnsafeOrderedCollection* collection, T key) where T : unmanaged, IComparable<T>
