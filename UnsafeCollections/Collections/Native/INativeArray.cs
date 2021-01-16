@@ -28,7 +28,7 @@ using System.Collections.Generic;
 
 namespace UnsafeCollections.Collections.Native
 {
-    internal interface INativeArray<T> : IDisposable, IEnumerable<T>, IEnumerable where T : unmanaged
+    public interface INativeArray<T> : IDisposable, IEnumerable<T>, IEnumerable where T : unmanaged
     {
         /// <summary>
         /// Returns 'True' if the underlying buffer is allocated.

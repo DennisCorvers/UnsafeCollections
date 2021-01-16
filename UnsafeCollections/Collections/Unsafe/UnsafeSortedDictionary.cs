@@ -140,9 +140,8 @@ namespace UnsafeCollections.Collections.Unsafe
             }
             else
             {
-                int index = UnsafeOrderedCollection.Insert<K>(&map->_collection, key);
-                var newEntry = UnsafeOrderedCollection.GetEntry(&map->_collection, index);
-                *GetValue<V>(map->_valueOffset, newEntry) = value;
+                entry = UnsafeOrderedCollection.Insert<K>(&map->_collection, key);
+                *GetValue<V>(map->_valueOffset, entry) = value;
             }
         }
 
@@ -171,10 +170,7 @@ namespace UnsafeCollections.Collections.Unsafe
             var entry = UnsafeOrderedCollection.Find<K>(&map->_collection, key);
 
             if (entry == null)
-            {
-                int index = UnsafeOrderedCollection.Insert<K>(&map->_collection, key);
-                entry = UnsafeOrderedCollection.GetEntry(&map->_collection, index);
-            }
+                entry = UnsafeOrderedCollection.Insert<K>(&map->_collection, key);
 
             *GetValue<V>(map->_valueOffset, entry) = value;
         }
@@ -236,7 +232,7 @@ namespace UnsafeCollections.Collections.Unsafe
         private static V* GetValue<V>(int offset, UnsafeOrderedCollection.Entry* pair)
             where V : unmanaged
         {
-            return (V*)(pair + offset);
+            return (V*)((byte*)pair + offset);
         }
 
         public static Enumerator<K, V> GetEnumerator<K, V>(UnsafeSortedDictionary* map)

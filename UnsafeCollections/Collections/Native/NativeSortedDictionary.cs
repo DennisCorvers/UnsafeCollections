@@ -201,9 +201,9 @@ namespace UnsafeCollections.Collections.Native
         }
 
 
-        [DebuggerTypeProxy(typeof(NativeCollectionDebugView<>))]
         [DebuggerDisplay("Count = {Count}")]
-        public unsafe struct KeyCollection : INativeCollection<K>, IReadOnlyCollection<K>
+        [DebuggerTypeProxy(typeof(NativeDictionaryKeyCollectionDebugView<,>))]
+        public unsafe struct KeyCollection : INativeCollection<K>, INativeReadOnlyCollection<K>
         {
             private const string NOT_SUPPORTED_MUTATION = "Mutating a key collection derived from a dictionary is not allowed.";
             private readonly NativeSortedDictionary<K, V> _dictionary;
@@ -221,8 +221,18 @@ namespace UnsafeCollections.Collections.Native
                 get { return _dictionary.Count; }
             }
 
-            bool INativeCollection<K>.IsCreated => _dictionary.IsCreated;
-            bool ICollection<K>.IsReadOnly => true;
+            bool ICollection<K>.IsReadOnly
+            {
+                get => true;
+            }
+            bool INativeCollection<K>.IsCreated
+            {
+                get => _dictionary.IsCreated;
+            }
+            bool INativeReadOnlyCollection<K>.IsCreated
+            {
+                get => _dictionary.IsCreated;
+            }
 
             public Enumerator GetEnumerator()
             {
@@ -272,6 +282,22 @@ namespace UnsafeCollections.Collections.Native
                 return _dictionary.ContainsKey(item);
             }
 
+            bool ICollection<K>.Remove(K item)
+            {
+                throw new NotSupportedException(NOT_SUPPORTED_MUTATION);
+            }
+
+            public NativeArray<K> ToNativeArray()
+            {
+                var arr = new NativeArray<K>(Count);
+                int i = 0;
+                var enumerator = GetEnumerator();
+                while (enumerator.MoveNext())
+                    arr[i++] = enumerator.Current;
+
+                return arr;
+            }
+
             void ICollection<K>.CopyTo(K[] array, int arrayIndex)
             {
                 CopyTo(array, arrayIndex);
@@ -282,29 +308,13 @@ namespace UnsafeCollections.Collections.Native
                 throw new NotSupportedException(NOT_SUPPORTED_MUTATION);
             }
 
-            bool ICollection<K>.Remove(K item)
-            {
-                throw new NotSupportedException(NOT_SUPPORTED_MUTATION);
-            }
-
-            NativeArray<K> INativeCollection<K>.ToNativeArray()
-            {
-                var arr = new NativeArray<K>(Count);
-                int i = 0;
-                var enumerator = _dictionary.GetEnumerator();
-                while (enumerator.MoveNext())
-                    arr[i++] = enumerator.CurrentKey;
-
-                return arr;
-            }
-
             public struct Enumerator : IEnumerator<K>, IEnumerator
             {
                 public UnsafeSortedDictionary.Enumerator<K, V> _dictEnum;
 
                 internal Enumerator(NativeSortedDictionary<K, V> dictionary)
                 {
-                    _dictEnum = dictionary.GetEnumerator();
+                    _dictEnum = new UnsafeSortedDictionary.Enumerator<K, V>(dictionary.m_inner);
                 }
 
                 public K Current
@@ -340,9 +350,9 @@ namespace UnsafeCollections.Collections.Native
             }
         }
 
-        [DebuggerTypeProxy(typeof(NativeCollectionDebugView<>))]
         [DebuggerDisplay("Count = {Count}")]
-        public unsafe struct ValueCollection : INativeCollection<V>, IReadOnlyCollection<V>
+        [DebuggerTypeProxy(typeof(NativeDictionaryValueCollectionDebugView<,>))]
+        public unsafe struct ValueCollection : INativeCollection<V>, INativeReadOnlyCollection<V>
         {
             private const string NOT_SUPPORTED_MUTATION = "Mutating a key collection derived from a dictionary is not allowed.";
             private readonly NativeSortedDictionary<K, V> _dictionary;
@@ -360,8 +370,18 @@ namespace UnsafeCollections.Collections.Native
                 get { return _dictionary.Count; }
             }
 
-            bool INativeCollection<V>.IsCreated => _dictionary.IsCreated;
-            bool ICollection<V>.IsReadOnly => true;
+            bool ICollection<V>.IsReadOnly
+            {
+                get => true;
+            }
+            bool INativeCollection<V>.IsCreated
+            {
+                get => _dictionary.IsCreated;
+            }
+            bool INativeReadOnlyCollection<V>.IsCreated
+            {
+                get => _dictionary.IsCreated;
+            }
 
             public Enumerator GetEnumerator()
             {
@@ -396,17 +416,6 @@ namespace UnsafeCollections.Collections.Native
                     array[i++] = enumerator.CurrentValue;
             }
 
-            public NativeArray<V> ToNativeArray()
-            {
-                var arr = new NativeArray<V>(Count);
-                int i = 0;
-                var enumerator = _dictionary.GetEnumerator();
-                while (enumerator.MoveNext())
-                    arr[i++] = enumerator.CurrentValue;
-
-                return arr;
-            }
-
             void ICollection<V>.Add(V item)
             {
                 throw new NotSupportedException(NOT_SUPPORTED_MUTATION);
@@ -420,15 +429,30 @@ namespace UnsafeCollections.Collections.Native
             bool ICollection<V>.Contains(V item)
             {
                 var comparer = EqualityComparer<V>.Default;
-
-                var enumerator = _dictionary.GetEnumerator();
+                var enumerator = GetEnumerator();
                 while (enumerator.MoveNext())
                 {
-                    if (comparer.Equals(item, enumerator.CurrentValue))
+                    if (comparer.Equals(item, enumerator.Current))
                         return true;
                 }
 
                 return false;
+            }
+
+            bool ICollection<V>.Remove(V item)
+            {
+                throw new NotSupportedException(NOT_SUPPORTED_MUTATION);
+            }
+
+            public NativeArray<V> ToNativeArray()
+            {
+                var arr = new NativeArray<V>(Count);
+                int i = 0;
+                var enumerator = GetEnumerator();
+                while (enumerator.MoveNext())
+                    arr[i++] = enumerator.Current;
+
+                return arr;
             }
 
             void ICollection<V>.CopyTo(V[] array, int arrayIndex)
@@ -441,18 +465,13 @@ namespace UnsafeCollections.Collections.Native
                 throw new NotSupportedException(NOT_SUPPORTED_MUTATION);
             }
 
-            bool ICollection<V>.Remove(V item)
-            {
-                throw new NotSupportedException(NOT_SUPPORTED_MUTATION);
-            }
-
             public struct Enumerator : IEnumerator<V>, IEnumerator
             {
                 public UnsafeSortedDictionary.Enumerator<K, V> _dictEnum;
 
                 internal Enumerator(NativeSortedDictionary<K, V> dictionary)
                 {
-                    _dictEnum = dictionary.GetEnumerator();
+                    _dictEnum = new UnsafeSortedDictionary.Enumerator<K, V>(dictionary.m_inner);
                 }
 
                 public V Current
@@ -467,7 +486,7 @@ namespace UnsafeCollections.Collections.Native
                 {
                     get
                     {
-                        return _dictEnum.Current;
+                        return _dictEnum.CurrentValue;
                     }
                 }
 

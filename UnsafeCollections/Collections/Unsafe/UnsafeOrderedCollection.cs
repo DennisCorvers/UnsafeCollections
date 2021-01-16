@@ -82,7 +82,7 @@ namespace UnsafeCollections.Collections.Unsafe
             return preCount != GetCount(collection);
         }
 
-        public static int Insert<T>(UnsafeOrderedCollection* collection, T key, bool update = false)
+        public static Entry* Insert<T>(UnsafeOrderedCollection* collection, T key, bool update = false)
             where T : unmanaged, IComparable<T>
         {
             if (collection->FreeCount == 0 && collection->UsedCount == collection->Entries.Length)
@@ -93,9 +93,7 @@ namespace UnsafeCollections.Collections.Unsafe
                     throw new InvalidOperationException(COLLECTION_FULL);
             }
 
-            int index = InsertPerform<T>(collection, key, update);
-            collection->Root = index;
-            return index;
+            return InsertPerform<T>(collection, key, update);
         }
 
         public static Entry* Find<T>(UnsafeOrderedCollection* collection, T key) where T : unmanaged, IComparable<T>
@@ -188,10 +186,9 @@ namespace UnsafeCollections.Collections.Unsafe
             collection->FreeCount = collection->FreeCount + 1;
         }
 
-        static int CreateEntry<T>(UnsafeOrderedCollection* collection, T key) where T : unmanaged
+        static Entry* CreateEntry<T>(UnsafeOrderedCollection* collection, T key, out int entryIndex) where T : unmanaged
         {
             Entry* entry;
-            int entryIndex;
 
             if (collection->FreeHead > 0)
             {
@@ -224,11 +221,11 @@ namespace UnsafeCollections.Collections.Unsafe
             // write key to entry
             *(T*)((byte*)entry + collection->KeyOffset) = key;
 
-            // return entry index
-            return entryIndex;
+            // return entry
+            return entry;
         }
 
-        static int InsertPerform<T>(UnsafeOrderedCollection* collection, T insertKey, bool update) where T : unmanaged, IComparable<T>
+        static Entry* InsertPerform<T>(UnsafeOrderedCollection* collection, T insertKey, bool update) where T : unmanaged, IComparable<T>
         {
             const bool L = true;
             const bool R = false;
@@ -265,7 +262,7 @@ namespace UnsafeCollections.Collections.Unsafe
                         SetKey(collection, entryIndex, insertKey);
                     }
 
-                    return collection->Root;
+                    return entry;
                 }
 
                 ++pathSize;
@@ -280,12 +277,12 @@ namespace UnsafeCollections.Collections.Unsafe
             // means we're at the root, so just insert and return it
             if (pathSize == 0)
             {
-                return CreateEntry<T>(collection, insertKey);
+                return CreateEntry<T>(collection, insertKey, out collection->Root);
             }
 
             // now we've created the entry at entryIndex,
             // insert it into path to simplify the reblance loop
-            path[pathSize++] = CreateEntry<T>(collection, insertKey);
+            var nextEntry = CreateEntry<T>(collection, insertKey, out path[pathSize++]);
 
             // we initialize i to pathSize-2 because we don't
             // have to re-balance or check the node we just
@@ -372,8 +369,9 @@ namespace UnsafeCollections.Collections.Unsafe
                 }
             }
 
-            // path 0 is our root
-            return path[0];
+            // Set root to path[0] and return the latest entry
+            collection->Root = path[0];
+            return nextEntry;
         }
 
         static int DeletePerform<T>(UnsafeOrderedCollection* collection, T deleteKey) where T : unmanaged, IComparable<T>

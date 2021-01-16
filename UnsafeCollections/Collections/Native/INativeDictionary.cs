@@ -27,7 +27,7 @@ using System.Collections.Generic;
 
 namespace UnsafeCollections.Collections.Native
 {
-    interface INativeDictionary<K, V> : IDictionary<K, V>, IDisposable
+    public interface INativeDictionary<K, V> : IDictionary<K, V>, IDisposable
         where K : unmanaged
         where V : unmanaged
     {
@@ -36,10 +36,5 @@ namespace UnsafeCollections.Collections.Native
         /// Returns 'True' if the underlying buffer is allocated.
         /// </summary>
         bool IsCreated { get; }
-
-        /// <summary>
-        /// Copies the collection into a NativeArray.
-        /// </summary>
-        //NativeArray<(K, V)> ToNativeArray();
     }
 }

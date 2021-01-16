@@ -236,7 +236,7 @@ namespace UnsafeCollections.Collections.Unsafe
         private static V* GetValue<V>(int offset, UnsafeHashCollection.Entry* pair)
             where V : unmanaged
         {
-            return (V*)(pair + offset);
+            return (V*)((byte*)pair + offset);
         }
 
         public unsafe struct Enumerator<K, V> : IUnsafeEnumerator<KeyValuePair<K, V>>

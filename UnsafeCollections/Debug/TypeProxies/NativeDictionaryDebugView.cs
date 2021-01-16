@@ -54,4 +54,50 @@ namespace UnsafeCollections.Debug.TypeProxies
             }
         }
     }
+
+    internal struct NativeDictionaryKeyCollectionDebugView<K, V>
+        where K : unmanaged
+        where V : unmanaged
+    {
+        private readonly ICollection<K> _collection;
+
+        public NativeDictionaryKeyCollectionDebugView(ICollection<K> collection)
+        {
+            _collection = collection ?? throw new ArgumentNullException(nameof(collection));
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public K[] Items
+        {
+            get
+            {
+                K[] items = new K[_collection.Count];
+                _collection.CopyTo(items, 0);
+                return items;
+            }
+        }
+    }
+
+    internal struct NativeDictionaryValueCollectionDebugView<K, V>
+    where K : unmanaged
+    where V : unmanaged
+    {
+        private readonly ICollection<V> _collection;
+
+        public NativeDictionaryValueCollectionDebugView(ICollection<V> collection)
+        {
+            _collection = collection ?? throw new ArgumentNullException(nameof(collection));
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public V[] Items
+        {
+            get
+            {
+                V[] items = new V[_collection.Count];
+                _collection.CopyTo(items, 0);
+                return items;
+            }
+        }
+    }
 }
