@@ -63,9 +63,6 @@ namespace UnsafeCollections.Collections.Unsafe
             // round capacity up to next prime 
             capacity = UnsafeHashCollection.GetNextPrime(capacity);
 
-            // this has to be true
-            UDebug.Assert(entryStride == 16);
-
             var keyAlignment = Memory.GetAlignment(keyStride);
             var valAlignment = Memory.GetAlignment(valStride);
 
@@ -158,11 +155,11 @@ namespace UnsafeCollections.Collections.Unsafe
                 entry = UnsafeHashCollection.Insert<K>(&map->_collection, key, hash);
 
                 // assign value to entry
-                *(V*)GetValue(map, entry) = value;
+                *GetValue<V>(map->_valueOffset, entry) = value;
             }
             else
             {
-                value = *(V*)GetValue(map, entry);
+                value = *GetValue<V>(map->_valueOffset, entry);
             }
         }
 
@@ -178,7 +175,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 entry = UnsafeHashCollection.Insert<K>(&map->_collection, key, hash);
 
                 // assign value to entry
-                *(V*)GetValue(map, entry) = value;
+                *GetValue<V>(map->_valueOffset, entry) = value;
             }
             else
             {
@@ -199,19 +196,12 @@ namespace UnsafeCollections.Collections.Unsafe
             }
 
             // assign value to entry
-            *(V*)GetValue(map, entry) = value;
+            *GetValue<V>(map->_valueOffset, entry) = value;
         }
 
         public static V Get<K, V>(UnsafeHashMap* map, K key)
           where K : unmanaged, IEquatable<K>
           where V : unmanaged
-        {
-            return *GetPtr<K, V>(map, key);
-        }
-
-        public static V* GetPtr<K, V>(UnsafeHashMap* map, K key)
-            where K : unmanaged, IEquatable<K>
-            where V : unmanaged
         {
             var entry = UnsafeHashCollection.Find(&map->_collection, key, key.GetHashCode());
             if (entry == null)
@@ -219,14 +209,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 throw new KeyNotFoundException(key.ToString());
             }
 
-            return (V*)GetValue(map, entry);
-        }
-
-        public static ref V GetRef<K, V>(UnsafeHashMap* map, K key)
-            where K : unmanaged, IEquatable<K>
-            where V : unmanaged
-        {
-            return ref *GetPtr<K, V>(map, key);
+            return *GetValue<V>(map->_valueOffset, entry);
         }
 
         public static bool TryGetValue<K, V>(UnsafeHashMap* map, K key, out V val)
@@ -236,26 +219,11 @@ namespace UnsafeCollections.Collections.Unsafe
             var entry = UnsafeHashCollection.Find<K>(&map->_collection, key, key.GetHashCode());
             if (entry != null)
             {
-                val = *(V*)GetValue(map, entry);
+                val = *GetValue<V>(map->_valueOffset, entry);
                 return true;
             }
 
             val = default;
-            return false;
-        }
-
-        public static bool TryGetValuePtr<K, V>(UnsafeHashMap* map, K key, out V* val)
-          where K : unmanaged, IEquatable<K>
-          where V : unmanaged
-        {
-            var entry = UnsafeHashCollection.Find<K>(&map->_collection, key, key.GetHashCode());
-            if (entry != null)
-            {
-                val = (V*)GetValue(map, entry);
-                return true;
-            }
-
-            val = null;
             return false;
         }
 
@@ -265,9 +233,10 @@ namespace UnsafeCollections.Collections.Unsafe
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void* GetValue(UnsafeHashMap* map, UnsafeHashCollection.Entry* entry)
+        private static V* GetValue<V>(int offset, UnsafeHashCollection.Entry* pair)
+            where V : unmanaged
         {
-            return (byte*)entry + map->_valueOffset;
+            return (V*)(pair + offset);
         }
 
         public unsafe struct Enumerator<K, V> : IUnsafeEnumerator<KeyValuePair<K, V>>

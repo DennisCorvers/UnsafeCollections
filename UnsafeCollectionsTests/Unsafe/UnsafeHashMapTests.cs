@@ -28,7 +28,7 @@ namespace UnsafeCollectionsTests.Unsafe
         [Test]
         public void FreeDynamicMap()
         {
-            var s = UnsafeHashMap.Allocate<int, int>(2, false);
+            var s = UnsafeHashMap.Allocate<int, byte>(2, false);
             UnsafeHashMap.Free(s);
         }
 

@@ -46,9 +46,6 @@ namespace UnsafeCollections.Collections.Unsafe
             // round capacity up to next prime 
             capacity = UnsafeHashCollection.GetNextPrime(capacity);
 
-            // this has to be true
-            UDebug.Assert(entryStride == 16);
-
             var valAlignment = Memory.GetAlignment(valStride);
 
             // the alignment for entry/key/val, we can't have less than ENTRY_ALIGNMENT

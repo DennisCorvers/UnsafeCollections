@@ -29,12 +29,12 @@ using System.Runtime.CompilerServices;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
-    public unsafe struct UnsafeOrderedSet
+    public unsafe struct UnsafeSortedSet
     {
         UnsafeOrderedCollection _collection;
         IntPtr _typeHandle;
 
-        public static UnsafeOrderedSet* Allocate<T>(int capacity, bool fixedSize = false)
+        public static UnsafeSortedSet* Allocate<T>(int capacity, bool fixedSize = false)
             where T : unmanaged, IComparable<T>
         {
             var valStride = sizeof(T);
@@ -50,18 +50,18 @@ namespace UnsafeCollections.Collections.Unsafe
             entryStride = Memory.RoundToAlignment(entryStride, alignment);
 
             // dictionary ptr
-            UnsafeOrderedSet* set;
+            UnsafeSortedSet* set;
 
             if (fixedSize)
             {
-                var sizeOfHeader = Memory.RoundToAlignment(sizeof(UnsafeOrderedSet), alignment);
+                var sizeOfHeader = Memory.RoundToAlignment(sizeof(UnsafeSortedSet), alignment);
                 var sizeofEntriesBuffer = (entryStride + valStride) * capacity;
 
                 // allocate memory
                 var ptr = Memory.MallocAndZero(sizeOfHeader + sizeofEntriesBuffer, alignment);
 
                 // start of memory is the set itself
-                set = (UnsafeOrderedSet*)ptr;
+                set = (UnsafeSortedSet*)ptr;
 
                 // initialize fixed buffer
                 UnsafeBuffer.InitFixed(&set->_collection.Entries, (byte*)ptr + sizeOfHeader, capacity, entryStride + valStride);
@@ -69,7 +69,7 @@ namespace UnsafeCollections.Collections.Unsafe
             else
             {
                 // allocate set separately
-                set = Memory.MallocAndZero<UnsafeOrderedSet>();
+                set = Memory.MallocAndZero<UnsafeSortedSet>();
 
                 // init dynamic buffer
                 UnsafeBuffer.InitDynamic(&set->_collection.Entries, capacity, entryStride + valStride);
@@ -83,7 +83,7 @@ namespace UnsafeCollections.Collections.Unsafe
             return set;
         }
 
-        public static void Free(UnsafeOrderedSet* set)
+        public static void Free(UnsafeSortedSet* set)
         {
             if (set == null)
                 return;
@@ -100,28 +100,28 @@ namespace UnsafeCollections.Collections.Unsafe
             Memory.Free(set);
         }
 
-        public static int GetCount(UnsafeOrderedSet* set)
+        public static int GetCount(UnsafeSortedSet* set)
         {
             UDebug.Assert(set != null);
 
             return UnsafeOrderedCollection.GetCount(&set->_collection);
         }
 
-        public static int GetCapacity(UnsafeOrderedSet* set)
+        public static int GetCapacity(UnsafeSortedSet* set)
         {
             UDebug.Assert(set != null);
 
             return set->_collection.Entries.Length;
         }
 
-        public static bool IsFixedSize(UnsafeOrderedSet* set)
+        public static bool IsFixedSize(UnsafeSortedSet* set)
         {
             UDebug.Assert(set != null);
 
             return set->_collection.Entries.Dynamic == 0;
         }
 
-        public static void Add<T>(UnsafeOrderedSet* set, T item)
+        public static void Add<T>(UnsafeSortedSet* set, T item)
             where T : unmanaged, IComparable<T>
         {
             UDebug.Assert(set != null);
@@ -130,7 +130,7 @@ namespace UnsafeCollections.Collections.Unsafe
             UnsafeOrderedCollection.Insert<T>(&set->_collection, item);
         }
 
-        public static bool Remove<T>(UnsafeOrderedSet* set, T item)
+        public static bool Remove<T>(UnsafeSortedSet* set, T item)
             where T : unmanaged, IComparable<T>
         {
             UDebug.Assert(set != null);
@@ -139,7 +139,7 @@ namespace UnsafeCollections.Collections.Unsafe
             return UnsafeOrderedCollection.Remove<T>(&set->_collection, item);
         }
 
-        public static bool Contains<T>(UnsafeOrderedSet* set, T item)
+        public static bool Contains<T>(UnsafeSortedSet* set, T item)
             where T : unmanaged, IComparable<T>
         {
             UDebug.Assert(set != null);
@@ -148,14 +148,14 @@ namespace UnsafeCollections.Collections.Unsafe
             return UnsafeOrderedCollection.Find<T>(&set->_collection, item) != null;
         }
 
-        public static void Clear(UnsafeOrderedSet* set)
+        public static void Clear(UnsafeSortedSet* set)
         {
             UDebug.Assert(set != null);
 
             UnsafeOrderedCollection.Clear(&set->_collection);
         }
 
-        public static void CopyTo<T>(UnsafeOrderedSet* set, void* destination, int destinationIndex)
+        public static void CopyTo<T>(UnsafeSortedSet* set, void* destination, int destinationIndex)
             where T : unmanaged
         {
             UDebug.Assert(set != null);
@@ -173,7 +173,7 @@ namespace UnsafeCollections.Collections.Unsafe
             }
         }
 
-        public static Enumerator<T> GetEnumerator<T>(UnsafeOrderedSet* set) where T : unmanaged
+        public static Enumerator<T> GetEnumerator<T>(UnsafeSortedSet* set) where T : unmanaged
         {
             UDebug.Assert(set != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
@@ -186,7 +186,7 @@ namespace UnsafeCollections.Collections.Unsafe
             readonly int _keyOffset;
             UnsafeOrderedCollection.Enumerator _iterator;
 
-            public Enumerator(UnsafeOrderedSet* set)
+            public Enumerator(UnsafeSortedSet* set)
             {
                 _keyOffset = set->_collection.KeyOffset;
                 _iterator = new UnsafeOrderedCollection.Enumerator(&set->_collection);

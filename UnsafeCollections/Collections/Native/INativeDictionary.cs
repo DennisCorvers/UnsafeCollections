@@ -23,42 +23,23 @@ THE SOFTWARE.
 */
 
 using System;
+using System.Collections.Generic;
 
-namespace UnsafeCollections.Collections.Unsafe
+namespace UnsafeCollections.Collections.Native
 {
-    public unsafe struct UnsafeOrderedMap
+    interface INativeDictionary<K, V> : IDictionary<K, V>, IDisposable
+        where K : unmanaged
+        where V : unmanaged
     {
-        UnsafeOrderedCollection _collection;
-        IntPtr _typeHandle;
 
-        public static UnsafeHashMap* Allocate<K, V>(int capacity, bool fixedSize = false)
-          where K : unmanaged, IComparable<K>
-          where V : unmanaged
-        {
-            var keyStride = sizeof(K);
-            var valStride = sizeof(V);
-            var entryStride = sizeof(UnsafeHashCollection.Entry);
+        /// <summary>
+        /// Returns 'True' if the underlying buffer is allocated.
+        /// </summary>
+        bool IsCreated { get; }
 
-
-            throw new NotImplementedException();
-        }
-
-        public static void Free(UnsafeOrderedMap* map)
-        {
-            if (map == null)
-                return;
-
-            if (map->_collection.Entries.Dynamic == 1)
-            {
-                UnsafeBuffer.Free(&map->_collection.Entries);
-            }
-
-            // clear memory
-            *map = default;
-
-            // free it
-            Memory.Free(map);
-        }
+        /// <summary>
+        /// Copies the collection into a NativeArray.
+        /// </summary>
+        //NativeArray<(K, V)> ToNativeArray();
     }
 }
-

@@ -82,21 +82,20 @@ namespace UnsafeCollections.Collections.Unsafe
             return preCount != GetCount(collection);
         }
 
-        public static void Insert<T>(UnsafeOrderedCollection* collection, T key) where T : unmanaged, IComparable<T>
+        public static int Insert<T>(UnsafeOrderedCollection* collection, T key, bool update = false)
+            where T : unmanaged, IComparable<T>
         {
             if (collection->FreeCount == 0 && collection->UsedCount == collection->Entries.Length)
             {
                 if (collection->Entries.Dynamic == 1)
-                {
                     Expand(collection);
-                }
                 else
-                {
                     throw new InvalidOperationException(COLLECTION_FULL);
-                }
             }
 
-            collection->Root = InsertPerform<T>(collection, key, false);
+            int index = InsertPerform<T>(collection, key, update);
+            collection->Root = index;
+            return index;
         }
 
         public static Entry* Find<T>(UnsafeOrderedCollection* collection, T key) where T : unmanaged, IComparable<T>

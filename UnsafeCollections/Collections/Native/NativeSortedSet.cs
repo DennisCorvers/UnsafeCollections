@@ -34,10 +34,10 @@ namespace UnsafeCollections.Collections.Native
 {
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(typeof(NativeReadOnlyCollectionDebugView<>))]
-    public unsafe struct NativeOrderedSet<T> : INativeReadOnlyCollection<T>, INativeCollection<T>
+    public unsafe struct NativeSortedSet<T> : INativeReadOnlyCollection<T>, INativeCollection<T>
         where T : unmanaged, IComparable<T>
     {
-        private UnsafeOrderedSet* m_inner;
+        private UnsafeSortedSet* m_inner;
 
         public bool IsCreated
         {
@@ -52,7 +52,7 @@ namespace UnsafeCollections.Collections.Native
             {
                 if (m_inner == null)
                     throw new NullReferenceException();
-                return UnsafeOrderedSet.GetCount(m_inner);
+                return UnsafeSortedSet.GetCount(m_inner);
             }
         }
         public int Capacity
@@ -61,7 +61,7 @@ namespace UnsafeCollections.Collections.Native
             {
                 if (m_inner == null)
                     throw new NullReferenceException();
-                return UnsafeOrderedSet.GetCapacity(m_inner);
+                return UnsafeSortedSet.GetCapacity(m_inner);
             }
         }
         public bool IsFixedSize
@@ -70,41 +70,41 @@ namespace UnsafeCollections.Collections.Native
             {
                 if (m_inner == null)
                     throw new NullReferenceException();
-                return UnsafeOrderedSet.IsFixedSize(m_inner);
+                return UnsafeSortedSet.IsFixedSize(m_inner);
             }
         }
 
         public bool IsReadOnly => false;
 
-        public NativeOrderedSet(int capacity)
+        public NativeSortedSet(int capacity)
         {
-            m_inner = UnsafeOrderedSet.Allocate<T>(capacity, false);
+            m_inner = UnsafeSortedSet.Allocate<T>(capacity, false);
         }
 
-        public NativeOrderedSet(int capacity, bool fixedSize)
+        public NativeSortedSet(int capacity, bool fixedSize)
         {
-            m_inner = UnsafeOrderedSet.Allocate<T>(capacity, fixedSize);
+            m_inner = UnsafeSortedSet.Allocate<T>(capacity, fixedSize);
         }
 
 
         public void Add(T item)
         {
-            UnsafeOrderedSet.Add<T>(m_inner, item);
+            UnsafeSortedSet.Add<T>(m_inner, item);
         }
 
         public void Clear()
         {
-            UnsafeOrderedSet.Clear(m_inner);
+            UnsafeSortedSet.Clear(m_inner);
         }
 
         public bool Contains(T item)
         {
-            return UnsafeOrderedSet.Contains<T>(m_inner, item);
+            return UnsafeSortedSet.Contains<T>(m_inner, item);
         }
 
         public bool Remove(T item)
         {
-            return UnsafeOrderedSet.Remove<T>(m_inner, item);
+            return UnsafeSortedSet.Remove<T>(m_inner, item);
         }
 
 
@@ -135,7 +135,7 @@ namespace UnsafeCollections.Collections.Native
                 return;
 
             fixed (void* ptr = array)
-                UnsafeOrderedSet.CopyTo<T>(m_inner, ptr, arrayIndex);
+                UnsafeSortedSet.CopyTo<T>(m_inner, ptr, arrayIndex);
         }
 
         public NativeArray<T> ToNativeArray()
@@ -144,23 +144,23 @@ namespace UnsafeCollections.Collections.Native
                 return NativeArray.Empty<T>();
 
             var arr = new NativeArray<T>(Count);
-            UnsafeOrderedSet.CopyTo<T>(m_inner, UnsafeArray.GetBuffer(arr.GetInnerCollection()), 0);
+            UnsafeSortedSet.CopyTo<T>(m_inner, UnsafeArray.GetBuffer(arr.GetInnerCollection()), 0);
 
             return arr;
         }
 
 
-        public UnsafeOrderedSet.Enumerator<T> GetEnumerator()
+        public UnsafeSortedSet.Enumerator<T> GetEnumerator()
         {
-            return UnsafeOrderedSet.GetEnumerator<T>(m_inner);
+            return UnsafeSortedSet.GetEnumerator<T>(m_inner);
         }
         IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            return UnsafeOrderedSet.GetEnumerator<T>(m_inner);
+            return UnsafeSortedSet.GetEnumerator<T>(m_inner);
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return UnsafeOrderedSet.GetEnumerator<T>(m_inner);
+            return UnsafeSortedSet.GetEnumerator<T>(m_inner);
         }
 
 #if UNITY
@@ -168,7 +168,7 @@ namespace UnsafeCollections.Collections.Native
 #endif
         public void Dispose()
         {
-            UnsafeOrderedSet.Free(m_inner);
+            UnsafeSortedSet.Free(m_inner);
             m_inner = null;
         }
     }
