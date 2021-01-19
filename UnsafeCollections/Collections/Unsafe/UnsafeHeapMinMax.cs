@@ -24,27 +24,29 @@ THE SOFTWARE.
 
 using System;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
     public unsafe struct UnsafeHeapMax
     {
-        const string HEAP_FULL = "Fixed size heap is full";
-        const string HEAP_EMPTY = "Heap is empty";
-
         UnsafeBuffer _items;
         int _count;
-        int _keyStride;
+        int _keyStride;           // Readonly
+        IntPtr _typeHandleKey;    // Readonly
+        IntPtr _typeHandleValue;  // Readonly
+
 
         public static UnsafeHeapMax* Allocate<K, V>(int capacity, bool fixedSize = false)
-          where K : unmanaged, IComparable<K>
-          where V : unmanaged
+            where K : unmanaged, IComparable<K>
+            where V : unmanaged
         {
-            return Allocate(capacity, sizeof(K), sizeof(V), fixedSize);
-        }
+            if (capacity < 1)
+                throw new ArgumentOutOfRangeException(nameof(capacity), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(capacity)));
 
-        public static UnsafeHeapMax* Allocate(int capacity, int keyStride, int valStride, bool fixedSize = false)
-        {
+            var keyStride = sizeof(K);
+            var valStride = sizeof(V);
+
             capacity += 1;
 
             // get alignment for key/val
@@ -83,6 +85,8 @@ namespace UnsafeCollections.Collections.Unsafe
 
             heap->_count = 1;
             heap->_keyStride = keyStride;
+            heap->_typeHandleKey = typeof(K).TypeHandle.Value;
+            heap->_typeHandleValue = typeof(V).TypeHandle.Value;
             return heap;
         }
 
@@ -106,23 +110,33 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static int GetCapacity(UnsafeHeapMax* heap)
         {
+            UDebug.Assert(heap != null);
+
             return heap->_items.Length - 1;
         }
 
         public static int GetCount(UnsafeHeapMax* heap)
         {
+            UDebug.Assert(heap != null);
+
             return heap->_count - 1;
         }
 
         public static void Clear(UnsafeHeapMax* heap)
         {
+            UDebug.Assert(heap != null);
+
             heap->_count = 1;
         }
 
         public static void Push<K, V>(UnsafeHeapMax* heap, K key, V val)
-          where K : unmanaged, IComparable<K>
-          where V : unmanaged
+            where K : unmanaged, IComparable<K>
+            where V : unmanaged
         {
+            UDebug.Assert(heap != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == heap->_typeHandleKey);
+            UDebug.Assert(typeof(V).TypeHandle.Value == heap->_typeHandleValue);
+
             if (heap->_count == heap->_items.Length)
             {
                 if (heap->_items.Dynamic == 1)
@@ -131,7 +145,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 }
                 else
                 {
-                    throw new InvalidOperationException(HEAP_FULL);
+                    throw new InvalidOperationException(ThrowHelper.InvalidOperation_CollectionFull);
                 }
             }
 
@@ -162,15 +176,18 @@ namespace UnsafeCollections.Collections.Unsafe
             heap->_count = heap->_count + 1;
         }
 
-
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void Pop<K, V>(UnsafeHeapMax* heap, out K key, out V val)
-          where K : unmanaged, IComparable<K>
-          where V : unmanaged
+            where K : unmanaged, IComparable<K>
+            where V : unmanaged
         {
+            UDebug.Assert(heap != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == heap->_typeHandleKey);
+            UDebug.Assert(typeof(V).TypeHandle.Value == heap->_typeHandleValue);
+
             if (heap->_count <= 1)
             {
-                throw new InvalidOperationException(HEAP_EMPTY);
+                throw new InvalidOperationException(ThrowHelper.InvalidOperation_EmptyHeap);
             }
 
             heap->_count = heap->_count - 1;
@@ -231,8 +248,8 @@ namespace UnsafeCollections.Collections.Unsafe
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void GetKeyVal<K, V>(UnsafeHeapMax* heap, int index, out K key, out V val)
-          where K : unmanaged
-          where V : unmanaged
+            where K : unmanaged
+            where V : unmanaged
         {
             var ptr = heap->_items.Element(index);
 
@@ -245,8 +262,8 @@ namespace UnsafeCollections.Collections.Unsafe
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void SetKeyVal<K, V>(UnsafeHeapMax* heap, int index, K key, V val)
-          where K : unmanaged
-          where V : unmanaged
+            where K : unmanaged
+            where V : unmanaged
         {
             var ptr = heap->_items.Element(index);
 
@@ -279,28 +296,30 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static UnsafeList.Enumerator<T> GetEnumerator<T>(UnsafeHeapMax* heap) where T : unmanaged
         {
+            UDebug.Assert(heap != null);
+
             return new UnsafeList.Enumerator<T>(heap->_items, 1, heap->_count - 1);
         }
     }
 
     public unsafe struct UnsafeHeapMin
     {
-        const string HEAP_FULL = "Fixed size heap is full";
-        const string HEAP_EMPTY = "Heap is empty";
-
         UnsafeBuffer _items;
         int _count;
-        int _keyStride;
+        int _keyStride;           // Readonly
+        IntPtr _typeHandleKey;    // Readonly
+        IntPtr _typeHandleValue;  // Readonly
 
         public static UnsafeHeapMin* Allocate<K, V>(int capacity, bool fixedSize = false)
-          where K : unmanaged, IComparable<K>
-          where V : unmanaged
+            where K : unmanaged, IComparable<K>
+            where V : unmanaged
         {
-            return Allocate(capacity, sizeof(K), sizeof(V), fixedSize);
-        }
+            if (capacity < 1)
+                throw new ArgumentOutOfRangeException(nameof(capacity), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(capacity)));
 
-        public static UnsafeHeapMin* Allocate(int capacity, int keyStride, int valStride, bool fixedSize = false)
-        {
+            var keyStride = sizeof(K);
+            var valStride = sizeof(V);
+
             capacity += 1;
 
             // get alignment for key/val
@@ -339,6 +358,8 @@ namespace UnsafeCollections.Collections.Unsafe
 
             heap->_count = 1;
             heap->_keyStride = keyStride;
+            heap->_typeHandleKey = typeof(K).TypeHandle.Value;
+            heap->_typeHandleValue = typeof(V).TypeHandle.Value;
             return heap;
         }
 
@@ -364,23 +385,33 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static int Capacity(UnsafeHeapMin* heap)
         {
+            UDebug.Assert(heap != null);
+
             return heap->_items.Length - 1;
         }
 
         public static int Count(UnsafeHeapMin* heap)
         {
+            UDebug.Assert(heap != null);
+
             return heap->_count - 1;
         }
 
         public static void Clear(UnsafeHeapMin* heap)
         {
+            UDebug.Assert(heap != null);
+
             heap->_count = 1;
         }
 
         public static void Push<K, V>(UnsafeHeapMin* heap, K key, V val)
-          where K : unmanaged, IComparable<K>
-          where V : unmanaged
+            where K : unmanaged, IComparable<K>
+            where V : unmanaged
         {
+            UDebug.Assert(heap != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == heap->_typeHandleKey);
+            UDebug.Assert(typeof(V).TypeHandle.Value == heap->_typeHandleValue);
+
             if (heap->_count == heap->_items.Length)
             {
                 if (heap->_items.Dynamic == 1)
@@ -389,7 +420,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 }
                 else
                 {
-                    throw new InvalidOperationException(HEAP_FULL);
+                    throw new InvalidOperationException(ThrowHelper.InvalidOperation_CollectionFull);
                 }
             }
 
@@ -423,12 +454,16 @@ namespace UnsafeCollections.Collections.Unsafe
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void Pop<K, V>(UnsafeHeapMin* heap, out K key, out V val)
-          where K : unmanaged, IComparable<K>
-          where V : unmanaged
+            where K : unmanaged, IComparable<K>
+            where V : unmanaged
         {
+            UDebug.Assert(heap != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == heap->_typeHandleKey);
+            UDebug.Assert(typeof(V).TypeHandle.Value == heap->_typeHandleValue);
+
             if (heap->_count <= 1)
             {
-                throw new InvalidOperationException(HEAP_EMPTY);
+                throw new InvalidOperationException(ThrowHelper.InvalidOperation_EmptyHeap);
             }
 
             heap->_count = heap->_count - 1;
@@ -489,8 +524,8 @@ namespace UnsafeCollections.Collections.Unsafe
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void GetKeyVal<K, V>(UnsafeHeapMin* heap, int index, out K key, out V val)
-          where K : unmanaged
-          where V : unmanaged
+            where K : unmanaged
+            where V : unmanaged
         {
             var ptr = heap->_items.Element(index);
 
@@ -503,8 +538,8 @@ namespace UnsafeCollections.Collections.Unsafe
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void SetKeyVal<K, V>(UnsafeHeapMin* heap, int index, K key, V val)
-          where K : unmanaged
-          where V : unmanaged
+            where K : unmanaged
+            where V : unmanaged
         {
             var ptr = heap->_items.Element(index);
 
@@ -537,6 +572,8 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static UnsafeList.Enumerator<T> GetEnumerator<T>(UnsafeHeapMin* heap) where T : unmanaged
         {
+            UDebug.Assert(heap != null);
+
             return new UnsafeList.Enumerator<T>(heap->_items, 1, heap->_count - 1);
         }
     }

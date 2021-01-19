@@ -29,6 +29,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe.Concurrent
 {
@@ -38,16 +39,17 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
     public unsafe struct UnsafeSPSCQueue
     {
         UnsafeBuffer _items;
-        IntPtr _typeHandle; // Readonly
+        IntPtr _typeHandle;         // Readonly
         HeadAndTail _headAndTail;
-        int _mask;          // Readonly
+        int _mask;                  // Readonly
 
         /// <summary>
         /// Allocates a new SPSCRingbuffer. Capacity will be set to a power of 2.
         /// </summary>
         public static UnsafeSPSCQueue* Allocate<T>(int capacity) where T : unmanaged
         {
-            UDebug.Assert(capacity > 0);
+            if (capacity < 1)
+                throw new ArgumentOutOfRangeException(nameof(capacity), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(capacity)));
 
             capacity = Memory.RoundUpToPowerOf2(capacity);
             int stride = sizeof(T);
@@ -334,8 +336,6 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             // The amount of items enumerated can vary depending on if the TAIL moves during enumeration.
             // The HEAD is frozen in place when the enumerator is created. This means that the maximum 
             // amount of items read is always the capacity of the queue and no more.
-            const string HEAD_MOVED_FAULT = "Enumerator was invalidated by dequeue operation!";
-
             readonly UnsafeSPSCQueue* _queue;
             readonly long _headStart;
             readonly int _mask;
@@ -364,7 +364,7 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 
                 var head = Volatile.Read(ref _queue->_headAndTail.Head);
                 if (_headStart != head)
-                    throw new InvalidOperationException(HEAD_MOVED_FAULT);
+                    throw new InvalidOperationException(ThrowHelper.InvalidOperation_EnumFailedVersion);
 
                 var headIndex = head + ++_index;
                 var nextHead = headIndex + 1;

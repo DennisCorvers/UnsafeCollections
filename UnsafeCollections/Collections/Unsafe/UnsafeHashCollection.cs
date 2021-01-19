@@ -25,6 +25,7 @@ THE SOFTWARE.
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
@@ -132,14 +133,18 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static int GetNextPrime(int value)
         {
-            for (int i = 0; i < _primeTable.Length; ++i)
+            value--;
+
+            // Start at index 0 so the minimum size is 3.
+            for (int i = 0; i < _primeTable.Length; i++)
             {
-                if (_primeTable[i] > value)
+                var prime = _primeTable[i];
+
+                if(prime > value)
                 {
-                    return _primeTable[i];
+                    return prime; 
                 }
             }
-
             throw new InvalidOperationException($"HashCollection can't get larger than {_primeTable[_primeTable.Length - 1]}");
         }
 
@@ -253,6 +258,12 @@ namespace UnsafeCollections.Collections.Unsafe
             {
                 if (collection->UsedCount == collection->Entries.Length)
                 {
+                    // Cannot expand fixed-size HashCollection
+                    if (collection->Entries.Dynamic == 0)
+                    {
+                        throw new InvalidOperationException(ThrowHelper.InvalidOperation_CollectionFull);
+                    }
+
                     // !! IMPORTANT !!
                     // when this happens, it's very important to be
                     // aware of the fact that all pointers to to buckets

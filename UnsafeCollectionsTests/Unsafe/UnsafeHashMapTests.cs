@@ -1,77 +1,112 @@
 ﻿using NUnit.Framework;
+using System;
 using UnsafeCollections.Collections.Unsafe;
 
 namespace UnsafeCollectionsTests.Unsafe
 {
-    public unsafe class UnsafeHashMapTests
+    public unsafe class UnsafeHashDictionaryTests
     {
 
-        private UnsafeHashMap* Map(params int[] values)
+        private UnsafeDictionary* Dictionary(params int[] values)
         {
-            var map = UnsafeHashMap.Allocate<int, int>(values.Length * 2);
+            var map = UnsafeDictionary.Allocate<int, int>(values.Length * 2);
 
             for (int i = 0; i < values.Length; ++i)
             {
-                UnsafeHashMap.Add(map, i, values[i]);
+                UnsafeDictionary.Add(map, i, values[i]);
             }
 
             return map;
         }
 
         [Test]
-        public void FreeFixedMap()
+        public void FreeFixedDictionary()
         {
-            var s = UnsafeHashMap.Allocate<int, int>(2, true);
-            UnsafeHashMap.Free(s);
+            var s = UnsafeDictionary.Allocate<int, int>(2, true);
+            UnsafeDictionary.Free(s);
         }
 
         [Test]
-        public void FreeDynamicMap()
+        public void FreeDynamicDictionary()
         {
-            var s = UnsafeHashMap.Allocate<int, byte>(2, false);
-            UnsafeHashMap.Free(s);
+            var s = UnsafeDictionary.Allocate<int, byte>(2, false);
+            UnsafeDictionary.Free(s);
         }
 
         [Test]
-        public void ClearHashMap()
+        public void ClearHashDictionary()
         {
-            var map = Map(1, 2, 3);
-            Assert.IsTrue(UnsafeHashMap.ContainsKey(map, 2));
-            Assert.AreEqual(3, UnsafeHashMap.GetCount(map));
-            UnsafeHashMap.TryGetValue(map, 2, out int result);
+            var map = Dictionary(1, 2, 3);
+            Assert.IsTrue(UnsafeDictionary.ContainsKey(map, 2));
+            Assert.AreEqual(3, UnsafeDictionary.GetCount(map));
+            UnsafeDictionary.TryGetValue(map, 2, out int result);
             Assert.AreEqual(3, result);
 
-            UnsafeHashMap.Add(map, 3, 1);
-            Assert.AreEqual(4, UnsafeHashMap.GetCount(map));
+            UnsafeDictionary.Add(map, 3, 1);
+            Assert.AreEqual(4, UnsafeDictionary.GetCount(map));
 
-            UnsafeHashMap.Clear(map);
-            Assert.AreEqual(0, UnsafeHashMap.GetCount(map));
-            Assert.IsFalse(UnsafeHashMap.ContainsKey(map, 2));
+            UnsafeDictionary.Clear(map);
+            Assert.AreEqual(0, UnsafeDictionary.GetCount(map));
+            Assert.IsFalse(UnsafeDictionary.ContainsKey(map, 2));
 
-            UnsafeHashMap.Add(map, 3, 10);
-            Assert.AreEqual(1, UnsafeHashMap.GetCount(map));
-            Assert.IsTrue(UnsafeHashMap.ContainsKey(map, 3));
-            UnsafeHashMap.TryGetValue(map, 3, out int result2);
+            UnsafeDictionary.Add(map, 3, 10);
+            Assert.AreEqual(1, UnsafeDictionary.GetCount(map));
+            Assert.IsTrue(UnsafeDictionary.ContainsKey(map, 3));
+            UnsafeDictionary.TryGetValue(map, 3, out int result2);
             Assert.AreEqual(10, result2);
 
-            UnsafeHashMap.Clear(map);
-            Assert.AreEqual(0, UnsafeHashMap.GetCount(map));
+            UnsafeDictionary.Clear(map);
+            Assert.AreEqual(0, UnsafeDictionary.GetCount(map));
 
-            UnsafeHashMap.Free(map);
+            UnsafeDictionary.Free(map);
         }
 
         [Test]
-        public void MapIteratorTest()
+        public void DictionaryIteratorTest()
         {
-            var map = Map(0, 10, 20, 30, 40);
+            var map = Dictionary(0, 10, 20, 30, 40);
 
             int count = 0;
-            foreach (var keypair in UnsafeHashMap.GetEnumerator<int, int>(map))
+            foreach (var keypair in UnsafeDictionary.GetEnumerator<int, int>(map))
             {
                 Assert.AreEqual(count * 10, keypair.Value);
                 Assert.AreEqual(count, keypair.Key);
                 count++;
             }
+        }
+
+        [Test]
+        public void DuplicateKeyTest()
+        {
+            var dict = UnsafeDictionary.Allocate<int, long>(8);
+
+            UnsafeDictionary.Add<int, long>(dict, 1, 10);
+
+            Assert.Catch<ArgumentException>(() =>
+            {
+                UnsafeDictionary.Add<int, long>(dict, 1, 10);
+            });
+        }
+
+        [Test]
+        public void ExpandFailTest()
+        {
+            var dict = UnsafeDictionary.Allocate<int, long>(3, true);
+
+            Assert.AreEqual(3, UnsafeDictionary.GetCapacity(dict));
+
+            UnsafeDictionary.Add<int, long>(dict, 1, 10);
+            UnsafeDictionary.Add<int, long>(dict, 2, 20);
+            UnsafeDictionary.Add<int, long>(dict, 3, 30);
+
+            Assert.AreEqual(3, UnsafeDictionary.GetCount(dict));
+
+            Assert.Catch<InvalidOperationException>(() =>
+            {
+                UnsafeDictionary.Add<int, long>(dict, 4, 40);
+            });
+
+            Assert.AreEqual(3, UnsafeDictionary.GetCount(dict));
         }
     }
 }

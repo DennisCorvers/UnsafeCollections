@@ -26,38 +26,23 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
-    public unsafe struct UnsafeHashMap
+    public unsafe struct UnsafeDictionary
     {
         UnsafeHashCollection _collection;
-        int _valueOffset;
+        IntPtr _typeHandleKey;    // Readonly
+        IntPtr _typeHandleValue;  // Readonly
+        int _valueOffset;         // Readonly
 
-        public static int GetCapacity(UnsafeHashMap* map)
+        public static UnsafeDictionary* Allocate<K, V>(int capacity, bool fixedSize = false)
+            where K : unmanaged, IEquatable<K>
+            where V : unmanaged
         {
-            return map->_collection.Entries.Length;
-        }
-
-        public static int GetCount(UnsafeHashMap* map)
-        {
-            return map->_collection.UsedCount - map->_collection.FreeCount;
-        }
-
-        public static void Clear(UnsafeHashMap* set)
-        {
-            UnsafeHashCollection.Clear(&set->_collection);
-        }
-
-        public static UnsafeHashMap* Allocate<K, V>(int capacity, bool fixedSize = false)
-          where K : unmanaged, IEquatable<K>
-          where V : unmanaged
-        {
-            return Allocate(capacity, sizeof(K), sizeof(V), fixedSize);
-        }
-
-        public static UnsafeHashMap* Allocate(int capacity, int keyStride, int valStride, bool fixedSize = false)
-        {
+            var keyStride = sizeof(K);
+            var valStride = sizeof(V);
             var entryStride = sizeof(UnsafeHashCollection.Entry);
 
             // round capacity up to next prime 
@@ -76,11 +61,11 @@ namespace UnsafeCollections.Collections.Unsafe
             entryStride = Memory.RoundToAlignment(sizeof(UnsafeHashCollection.Entry), alignment);
 
             // map ptr
-            UnsafeHashMap* map;
+            UnsafeDictionary* map;
 
             if (fixedSize)
             {
-                var sizeOfHeader = Memory.RoundToAlignment(sizeof(UnsafeHashMap), alignment);
+                var sizeOfHeader = Memory.RoundToAlignment(sizeof(UnsafeDictionary), alignment);
                 var sizeOfBucketsBuffer = Memory.RoundToAlignment(sizeof(UnsafeHashCollection.Entry**) * capacity, alignment);
                 var sizeofEntriesBuffer = (entryStride + keyStride + valStride) * capacity;
 
@@ -88,7 +73,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 var ptr = Memory.MallocAndZero(sizeOfHeader + sizeOfBucketsBuffer + sizeofEntriesBuffer, alignment);
 
                 // start of memory is the dict itself
-                map = (UnsafeHashMap*)ptr;
+                map = (UnsafeDictionary*)ptr;
 
                 // buckets are offset by header size
                 map->_collection.Buckets = (UnsafeHashCollection.Entry**)((byte*)ptr + sizeOfHeader);
@@ -99,7 +84,7 @@ namespace UnsafeCollections.Collections.Unsafe
             else
             {
                 // allocate dict, buckets and entries buffer separately
-                map = Memory.MallocAndZero<UnsafeHashMap>();
+                map = Memory.MallocAndZero<UnsafeDictionary>();
                 map->_collection.Buckets = (UnsafeHashCollection.Entry**)Memory.MallocAndZero(sizeof(UnsafeHashCollection.Entry**) * capacity, sizeof(UnsafeHashCollection.Entry**));
 
                 // init dynamic buffer
@@ -110,13 +95,15 @@ namespace UnsafeCollections.Collections.Unsafe
             map->_collection.FreeCount = 0;
             map->_collection.UsedCount = 0;
             map->_collection.KeyOffset = entryStride;
+            map->_typeHandleKey = typeof(K).TypeHandle.Value;
+            map->_typeHandleValue = typeof(V).TypeHandle.Value;
 
             map->_valueOffset = entryStride + keyStride;
 
             return map;
         }
 
-        public static void Free(UnsafeHashMap* set)
+        public static void Free(UnsafeDictionary* set)
         {
             if (set == null)
                 return;
@@ -131,22 +118,43 @@ namespace UnsafeCollections.Collections.Unsafe
             Memory.Free(set);
         }
 
-        public static Enumerator<K, V> GetEnumerator<K, V>(UnsafeHashMap* map)
-          where K : unmanaged
-          where V : unmanaged
+        public static int GetCapacity(UnsafeDictionary* map)
         {
-            return new Enumerator<K, V>(map);
+            UDebug.Assert(map != null);
+
+            return map->_collection.Entries.Length;
         }
 
-        public static bool ContainsKey<K>(UnsafeHashMap* map, K key) where K : unmanaged, IEquatable<K>
+        public static int GetCount(UnsafeDictionary* map)
         {
+            UDebug.Assert(map != null);
+
+            return map->_collection.UsedCount - map->_collection.FreeCount;
+        }
+
+        public static void Clear(UnsafeDictionary* map)
+        {
+            UDebug.Assert(map != null);
+
+            UnsafeHashCollection.Clear(&map->_collection);
+        }
+
+        public static bool ContainsKey<K>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K>
+        {
+            UDebug.Assert(map != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
+
             return UnsafeHashCollection.Find<K>(&map->_collection, key, key.GetHashCode()) != null;
         }
 
-        public static void AddOrGet<K, V>(UnsafeHashMap* map, K key, ref V value)
+        public static void AddOrGet<K, V>(UnsafeDictionary* map, K key, ref V value)
           where K : unmanaged, IEquatable<K>
           where V : unmanaged
         {
+            UDebug.Assert(map != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
+            UDebug.Assert(typeof(V).TypeHandle.Value == map->_typeHandleValue);
+
             var hash = key.GetHashCode();
             var entry = UnsafeHashCollection.Find<K>(&map->_collection, key, hash);
             if (entry == null)
@@ -163,10 +171,14 @@ namespace UnsafeCollections.Collections.Unsafe
             }
         }
 
-        public static void Add<K, V>(UnsafeHashMap* map, K key, V value)
+        public static void Add<K, V>(UnsafeDictionary* map, K key, V value)
           where K : unmanaged, IEquatable<K>
           where V : unmanaged
         {
+            UDebug.Assert(map != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
+            UDebug.Assert(typeof(V).TypeHandle.Value == map->_typeHandleValue);
+
             var hash = key.GetHashCode();
             var entry = UnsafeHashCollection.Find<K>(&map->_collection, key, hash);
             if (entry == null)
@@ -179,14 +191,18 @@ namespace UnsafeCollections.Collections.Unsafe
             }
             else
             {
-                throw new InvalidOperationException();
+                throw new ArgumentException(string.Format(ThrowHelper.Arg_AddingDuplicateWithKey, key));
             }
         }
 
-        public static void Set<K, V>(UnsafeHashMap* map, K key, V value)
+        public static void Set<K, V>(UnsafeDictionary* map, K key, V value)
           where K : unmanaged, IEquatable<K>
           where V : unmanaged
         {
+            UDebug.Assert(map != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
+            UDebug.Assert(typeof(V).TypeHandle.Value == map->_typeHandleValue);
+
             var hash = key.GetHashCode();
             var entry = UnsafeHashCollection.Find<K>(&map->_collection, key, hash);
             if (entry == null)
@@ -199,23 +215,31 @@ namespace UnsafeCollections.Collections.Unsafe
             *GetValue<V>(map->_valueOffset, entry) = value;
         }
 
-        public static V Get<K, V>(UnsafeHashMap* map, K key)
+        public static V Get<K, V>(UnsafeDictionary* map, K key)
           where K : unmanaged, IEquatable<K>
           where V : unmanaged
         {
+            UDebug.Assert(map != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
+            UDebug.Assert(typeof(V).TypeHandle.Value == map->_typeHandleValue);
+
             var entry = UnsafeHashCollection.Find(&map->_collection, key, key.GetHashCode());
             if (entry == null)
             {
-                throw new KeyNotFoundException(key.ToString());
+                throw new ArgumentException(string.Format(ThrowHelper.Arg_KeyNotFoundWithKey, key));
             }
 
             return *GetValue<V>(map->_valueOffset, entry);
         }
 
-        public static bool TryGetValue<K, V>(UnsafeHashMap* map, K key, out V val)
+        public static bool TryGetValue<K, V>(UnsafeDictionary* map, K key, out V val)
           where K : unmanaged, IEquatable<K>
           where V : unmanaged
         {
+            UDebug.Assert(map != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
+            UDebug.Assert(typeof(V).TypeHandle.Value == map->_typeHandleValue);
+
             var entry = UnsafeHashCollection.Find<K>(&map->_collection, key, key.GetHashCode());
             if (entry != null)
             {
@@ -227,9 +251,23 @@ namespace UnsafeCollections.Collections.Unsafe
             return false;
         }
 
-        public static bool Remove<K>(UnsafeHashMap* map, K key) where K : unmanaged, IEquatable<K>
+        public static bool Remove<K>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K>
         {
+            UDebug.Assert(map != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
+
             return UnsafeHashCollection.Remove<K>(&map->_collection, key, key.GetHashCode());
+        }
+
+        public static Enumerator<K, V> GetEnumerator<K, V>(UnsafeDictionary* map)
+            where K : unmanaged
+            where V : unmanaged
+        {
+            UDebug.Assert(map != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
+            UDebug.Assert(typeof(V).TypeHandle.Value == map->_typeHandleValue);
+
+            return new Enumerator<K, V>(map);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -248,7 +286,7 @@ namespace UnsafeCollections.Collections.Unsafe
             readonly int _keyOffset;
             readonly int _valueOffset;
 
-            public Enumerator(UnsafeHashMap* map)
+            public Enumerator(UnsafeDictionary* map)
             {
                 _valueOffset = map->_valueOffset;
                 _keyOffset = map->_collection.KeyOffset;

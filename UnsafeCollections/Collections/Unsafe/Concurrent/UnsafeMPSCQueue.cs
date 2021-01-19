@@ -29,7 +29,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe.Concurrent
 {
@@ -48,7 +48,8 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
         /// </summary>
         public static UnsafeMPSCQueue* Allocate<T>(int capacity) where T : unmanaged
         {
-            UDebug.Assert(capacity > 0);
+            if (capacity < 1)
+                throw new ArgumentOutOfRangeException(nameof(capacity), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(capacity)));
 
             capacity = Memory.RoundUpToPowerOf2(capacity);
 
@@ -336,8 +337,6 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             // The amount of items enumerated can vary depending on if the TAIL moves during enumeration.
             // The HEAD is frozen in place when the enumerator is created. This means that the maximum 
             // amount of items read is always the capacity of the queue and no more.
-            const string HEAD_MOVED_FAULT = "Enumerator was invalidated by dequeue operation!";
-
             readonly UnsafeMPSCQueue* _queue;
             readonly int _headStart;
             readonly int _mask;
@@ -368,7 +367,7 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 
                 int head = Volatile.Read(ref _queue->_headAndTail.Head);
                 if (_headStart != head)
-                    throw new InvalidOperationException(HEAD_MOVED_FAULT);
+                    throw new InvalidOperationException(ThrowHelper.InvalidOperation_EnumFailedVersion);
 
                 int headIndex = head + ++_index;
                 int index = headIndex & _mask;

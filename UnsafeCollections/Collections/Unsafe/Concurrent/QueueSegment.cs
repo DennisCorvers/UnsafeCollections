@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe.Concurrent
 {
@@ -30,9 +32,11 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
         internal int Mask
             => _mask;
 
-        public static QueueSegment* Allocate(int capacity, int slotStride, int slotOffset)
+        internal static QueueSegment* Allocate(int capacity, int slotStride, int slotOffset)
         {
-            UDebug.Assert(capacity > 0);
+            if (capacity < 1)
+                throw new ArgumentOutOfRangeException(nameof(capacity), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(capacity)));
+
             UDebug.Assert(slotStride > 0);
             UDebug.Assert(slotOffset > 0);
 
@@ -66,7 +70,7 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             return queue;
         }
 
-        public static void Free(QueueSegment* segment)
+        internal static void Free(QueueSegment* segment)
         {
             if (segment == null)
                 return;

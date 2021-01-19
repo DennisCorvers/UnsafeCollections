@@ -26,6 +26,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 #if UNITY
 using Unity.Collections.LowLevel.Unsafe;
 #endif
@@ -39,10 +40,6 @@ namespace UnsafeCollections.Collections.Unsafe
         const ulong WORD_ONE = 1UL;
         const ulong WORD_ZERO = 0UL;
 
-        const string SET_DIFFERENT_SIZE = "Sets have different size";
-        const string SET_SIZE_LESS_THAN_ONE = "Set size can't be less than 1";
-        const string SET_ARRAY_LESS_CAPACITY = "Array is not long enough to hold all bits";
-
 #if UNITY
         [NativeDisableUnsafePtrRestriction]
 #endif
@@ -54,13 +51,11 @@ namespace UnsafeCollections.Collections.Unsafe
         public static UnsafeBitSet* Allocate(int size)
         {
             if (size < 1)
-            {
-                throw new InvalidOperationException(SET_SIZE_LESS_THAN_ONE);
-            }
+                throw new ArgumentOutOfRangeException(nameof(size), string.Format(ThrowHelper.ArgumentOutOfRange_MustBeNonNegNum, nameof(size)));
 
             var sizeOfHeader = Memory.RoundToAlignment(sizeof(UnsafeBitSet), WORD_SIZE);
             // Round to nearest multiple of 64 bits because that is the size of the buffer
-            var sizeOfBuffer = ((size + 63) >> 6) * 8; 
+            var sizeOfBuffer = ((size + 63) >> 6) * 8;
 
             var ptr = Memory.MallocAndZero(sizeOfHeader + sizeOfBuffer);
             var set = (UnsafeBitSet*)ptr;
@@ -111,7 +106,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             if ((uint)bit >= (uint)set->_sizeBits)
             {
-                throw new IndexOutOfRangeException();
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
             }
 
             set->_bits[bit / WORD_SIZE_BITS] |= WORD_ONE << (bit % WORD_SIZE_BITS);
@@ -121,7 +116,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             if ((uint)bit >= (uint)set->_sizeBits)
             {
-                throw new IndexOutOfRangeException();
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
             }
 
             set->_bits[bit / WORD_SIZE_BITS] &= ~(WORD_ONE << (bit % WORD_SIZE_BITS));
@@ -131,7 +126,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             if ((uint)bit >= (uint)set->_sizeBits)
             {
-                throw new IndexOutOfRangeException();
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
             }
 
             return (set->_bits[bit / WORD_SIZE_BITS] & (WORD_ONE << (bit % WORD_SIZE_BITS))) != WORD_ZERO;
@@ -141,7 +136,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             if (set->_sizeBits != other->_sizeBits)
             {
-                throw new InvalidOperationException(SET_DIFFERENT_SIZE);
+                throw new InvalidOperationException(ThrowHelper.Arg_BitSetLengthsDiffer);
             }
 
             for (var i = (set->_sizeBuckets - 1); i >= 0; --i)
@@ -154,7 +149,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             if (set->_sizeBits != other->_sizeBits)
             {
-                throw new InvalidOperationException(SET_DIFFERENT_SIZE);
+                throw new InvalidOperationException(ThrowHelper.Arg_BitSetLengthsDiffer);
             }
 
             for (var i = (set->_sizeBuckets - 1); i >= 0; --i)
@@ -167,7 +162,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             if (set->_sizeBits != other->_sizeBits)
             {
-                throw new InvalidOperationException(SET_DIFFERENT_SIZE);
+                throw new InvalidOperationException(ThrowHelper.Arg_BitSetLengthsDiffer);
             }
 
             for (var i = (set->_sizeBuckets - 1); i >= 0; --i)
@@ -200,7 +195,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
             if (UnsafeArray.GetLength(array) < set->_sizeBits)
             {
-                throw new InvalidOperationException(SET_ARRAY_LESS_CAPACITY);
+                throw new InvalidOperationException(ThrowHelper.Arg_ArrayPlusOffTooSmall);
             }
 
             var setCount = 0;
@@ -290,7 +285,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             if (set->_sizeBits != other->_sizeBits)
             {
-                throw new InvalidOperationException(SET_DIFFERENT_SIZE);
+                throw new InvalidOperationException(ThrowHelper.Arg_BitSetLengthsDiffer);
             }
 
             for (var i = (set->_sizeBuckets - 1); i >= 0; --i)

@@ -32,15 +32,12 @@ namespace UnsafeCollections.Collections.Unsafe
     public unsafe struct UnsafeHashSet
     {
         UnsafeHashCollection _collection;
+        IntPtr _typeHandle;
 
         public static UnsafeHashSet* Allocate<T>(int capacity, bool fixedSize = false)
-          where T : unmanaged, IEquatable<T>
+            where T : unmanaged, IEquatable<T>
         {
-            return Allocate(capacity, sizeof(T), fixedSize);
-        }
-
-        public static UnsafeHashSet* Allocate(int capacity, int valStride, bool fixedSize = false)
-        {
+            var valStride = sizeof(T);
             var entryStride = sizeof(UnsafeHashCollection.Entry);
 
             // round capacity up to next prime 
@@ -90,6 +87,7 @@ namespace UnsafeCollections.Collections.Unsafe
             set->_collection.FreeCount = 0;
             set->_collection.UsedCount = 0;
             set->_collection.KeyOffset = entryStride;
+            set->_typeHandle = typeof(T).TypeHandle.Value;
 
             return set;
         }
@@ -111,22 +109,31 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static int GetCapacity(UnsafeHashSet* set)
         {
+            UDebug.Assert(set != null);
+
             return set->_collection.Entries.Length;
         }
 
         public static int GetCount(UnsafeHashSet* set)
         {
+            UDebug.Assert(set != null);
+
             return set->_collection.UsedCount - set->_collection.FreeCount;
         }
 
         public static void Clear(UnsafeHashSet* set)
         {
+            UDebug.Assert(set != null);
+
             UnsafeHashCollection.Clear(&set->_collection);
         }
 
         public static bool Add<T>(UnsafeHashSet* set, T key)
           where T : unmanaged, IEquatable<T>
         {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+
             var hash = key.GetHashCode();
             var entry = UnsafeHashCollection.Find<T>(&set->_collection, key, hash);
             if (entry == null)
@@ -140,21 +147,35 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static bool Remove<T>(UnsafeHashSet* set, T key) where T : unmanaged, IEquatable<T>
         {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+
             return UnsafeHashCollection.Remove<T>(&set->_collection, key, key.GetHashCode());
         }
 
         public static bool Contains<T>(UnsafeHashSet* set, T key) where T : unmanaged, IEquatable<T>
         {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+
             return UnsafeHashCollection.Find<T>(&set->_collection, key, key.GetHashCode()) != null;
         }
 
         public static Enumerator<T> GetEnumerator<T>(UnsafeHashSet* set) where T : unmanaged
         {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+
             return new Enumerator<T>(set);
         }
 
         public static void And<T>(UnsafeHashSet* set, UnsafeHashSet* other) where T : unmanaged, IEquatable<T>
         {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+            UDebug.Assert(other != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == other->_typeHandle);
+
             for (int i = set->_collection.UsedCount - 1; i >= 0; --i)
             {
                 var entry = UnsafeHashCollection.GetEntry(&set->_collection, i);
@@ -174,6 +195,11 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static void Or<T>(UnsafeHashSet* set, UnsafeHashSet* other) where T : unmanaged, IEquatable<T>
         {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+            UDebug.Assert(other != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == other->_typeHandle);
+
             for (int i = other->_collection.UsedCount - 1; i >= 0; --i)
             {
                 var entry = UnsafeHashCollection.GetEntry(&other->_collection, i);
@@ -187,6 +213,11 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static void Xor<T>(UnsafeHashSet* set, UnsafeHashSet* other) where T : unmanaged, IEquatable<T>
         {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+            UDebug.Assert(other != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == other->_typeHandle);
+
             for (int i = other->_collection.UsedCount - 1; i >= 0; --i)
             {
                 var entry = UnsafeHashCollection.GetEntry(&other->_collection, i);

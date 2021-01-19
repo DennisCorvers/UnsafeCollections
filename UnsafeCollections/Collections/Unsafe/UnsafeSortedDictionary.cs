@@ -26,6 +26,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
@@ -59,7 +60,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
             if (fixedSize)
             {
-                var sizeOfHeader = Memory.RoundToAlignment(sizeof(UnsafeHashMap), alignment);
+                var sizeOfHeader = Memory.RoundToAlignment(sizeof(UnsafeDictionary), alignment);
                 var sizeOfBucketsBuffer = Memory.RoundToAlignment(sizeof(UnsafeHashCollection.Entry**) * capacity, alignment);
                 var sizeofEntriesBuffer = totalStride * capacity;
 
@@ -136,7 +137,7 @@ namespace UnsafeCollections.Collections.Unsafe
             var entry = UnsafeOrderedCollection.Find<K>(&map->_collection, key);
             if (entry != null)
             {
-                throw new ArgumentException($"An item with the same key has already been added. Key: {key}");
+                throw new ArgumentException(string.Format(ThrowHelper.Arg_AddingDuplicateWithKey, key));
             }
             else
             {
@@ -181,7 +182,9 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             var entry = UnsafeOrderedCollection.Find(&map->_collection, key);
             if (entry == null)
-                throw new KeyNotFoundException($"The given key '{key}' was not present in the dictionary.");
+            {
+                throw new ArgumentException(string.Format(ThrowHelper.Arg_KeyNotFoundWithKey, key));
+            }
 
             return *GetValue<V>(map->_valueOffset, entry);
         }

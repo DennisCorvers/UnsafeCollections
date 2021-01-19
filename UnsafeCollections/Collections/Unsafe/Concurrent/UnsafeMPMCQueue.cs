@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe.Concurrent
 {
@@ -39,7 +40,8 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
         /// <param name="fixedSize">Creates a queue with a fixed size if true.</param>
         public static UnsafeMPMCQueue* Allocate<T>(int segmentSize = INITIAL_SEGMENT_LENGTH, bool fixedSize = false) where T : unmanaged
         {
-            UDebug.Assert(segmentSize > 0);
+            if (segmentSize < 1)
+                throw new ArgumentOutOfRangeException(nameof(segmentSize), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(segmentSize)));
 
             int slotStride = Marshal.SizeOf(new QueueSlot<T>());
             int slotAlign = Memory.GetMaxAlignment(sizeof(T), sizeof(int));

@@ -33,6 +33,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 #if UNITY
 using Unity.Collections.LowLevel.Unsafe;
 #endif
@@ -41,7 +42,6 @@ namespace UnsafeCollections.Collections.Unsafe
 {
     public unsafe struct UnsafeArray
     {
-        const string ARRAY_SIZE_LESS_THAN_ONE = "Array size can't be less than 1";
 #if UNITY
         [NativeDisableUnsafePtrRestriction]
 #endif
@@ -53,9 +53,7 @@ namespace UnsafeCollections.Collections.Unsafe
         public static UnsafeArray* Allocate<T>(int size) where T : unmanaged
         {
             if (size < 0)
-            {
-                throw new InvalidOperationException(ARRAY_SIZE_LESS_THAN_ONE);
-            }
+                throw new ArgumentOutOfRangeException(nameof(size), string.Format(ThrowHelper.ArgumentOutOfRange_MustBeNonNegNum, nameof(size)));
 
             var alignment = Memory.GetAlignment(sizeof(T));
 
@@ -121,9 +119,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
             // cast to uint trick, which eliminates < 0 check
             if ((uint)index >= (uint)array->_length)
-            {
-                throw new IndexOutOfRangeException(index.ToString());
-            }
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
 
             return (T*)array->_buffer + index;
         }
@@ -167,9 +163,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
             // cast to uint trick, which eliminates < 0 check
             if ((uint)index >= (uint)array->_length)
-            {
-                throw new IndexOutOfRangeException(index.ToString());
-            }
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
 
             *((T*)array->_buffer + index) = value;
         }
@@ -184,31 +178,43 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static void Copy<T>(UnsafeArray* source, int sourceIndex, UnsafeArray* destination, int destinationIndex, int count) where T : unmanaged
         {
-            UDebug.Assert(source != null);
-            UDebug.Assert(destination != null);
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            if (destination == null)
+                throw new ArgumentNullException(nameof(destination));
+
+            if (GetLength(source) - sourceIndex < count)
+                throw new ArgumentException(ThrowHelper.Arg_ArrayPlusOffTooSmall);
+
+            if (GetLength(destination) - destinationIndex < count)
+                throw new ArgumentException(ThrowHelper.Arg_ArrayPlusOffTooSmall);
+
             UDebug.Assert(typeof(T).TypeHandle.Value == source->_typeHandle);
             UDebug.Assert(typeof(T).TypeHandle.Value == destination->_typeHandle);
-            UDebug.Assert(GetLength(source) >= sourceIndex + count);
-            UDebug.Assert(GetLength(destination) >= destinationIndex + count);
 
             Memory.MemCpy((T*)destination->_buffer + destinationIndex, (T*)source->_buffer + sourceIndex, count * sizeof(T));
         }
 
         public void CopyTo<T>(void* destination, int destinationIndex) where T : unmanaged
         {
-            UDebug.Assert(destination != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == _typeHandle);
+
+            if (destination == null)
+                throw new ArgumentNullException(nameof(destination));
 
             Memory.MemCpy((T*)destination + destinationIndex, _buffer, _length * sizeof(T));
         }
 
         public void CopyFrom<T>(void* source, int sourceIndex, int count) where T : unmanaged
         {
-            UDebug.Assert(source != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == _typeHandle);
 
-            if (sourceIndex + count > _length)
-                throw new IndexOutOfRangeException();
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            if (count > _length)
+                throw new ArgumentException(ThrowHelper.Arg_ArrayPlusOffTooSmall);
 
             Memory.MemCpy(_buffer, (T*)source + sourceIndex, count * sizeof(T));
         }
@@ -333,7 +339,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 get
                 {
                     if (_index == 0 || _index == _array->_length + 1)
-                        throw new InvalidOperationException();
+                        throw new InvalidOperationException(ThrowHelper.InvalidOperation_EnumOpCantHappen);
 
                     return Current;
                 }
