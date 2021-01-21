@@ -33,24 +33,22 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
     public unsafe struct UnsafeList
     {
-        const string LIST_FULL = "Fixed size list is full";
-        const string LIST_FIXED_CANT_CHANGE_CAPACITY = "Fixed size list can't change its capacity";
-        const string LIST_INIT_TOO_SMALL = "Pointer length for must be large enough to contain both header and at least 1 item";
-
         UnsafeBuffer _items;
         int _count;
         IntPtr _typeHandle;
 
         public static UnsafeList* Allocate<T>(int capacity, bool fixedSize = false) where T : unmanaged
         {
-            UDebug.Assert(capacity > 0);
-            int stride = sizeof(T);
+            if (capacity < 1)
+                throw new ArgumentOutOfRangeException(nameof(capacity), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(capacity)));
 
+            int stride = sizeof(T);
 
             UnsafeList* list;
 
@@ -140,7 +138,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
             if (list->_items.Dynamic == 0)
             {
-                throw new InvalidOperationException(LIST_FIXED_CANT_CHANGE_CAPACITY);
+                throw new InvalidOperationException(ThrowHelper.InvalidOperation_CollectionFull);
             }
 
             // no change in capacity
@@ -200,7 +198,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
             if (list->_items.Dynamic == 0)
             {
-                throw new InvalidOperationException(LIST_FULL);
+                throw new InvalidOperationException(ThrowHelper.InvalidOperation_CollectionFull);
             }
 
             // double capacity, make sure that if length is 0 then we set capacity to at least 2
@@ -228,7 +226,7 @@ namespace UnsafeCollections.Collections.Unsafe
             // cast to uint trick, which eliminates < 0 check
             if ((uint)index >= (uint)list->_count)
             {
-                throw new IndexOutOfRangeException();
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
             }
 
             var items = list->_items;
@@ -249,7 +247,7 @@ namespace UnsafeCollections.Collections.Unsafe
             // cast to uint trick, which eliminates < 0 check
             if ((uint)index >= (uint)list->_count)
             {
-                throw new IndexOutOfRangeException();
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
             }
 
             var items = list->_items;
@@ -271,7 +269,7 @@ namespace UnsafeCollections.Collections.Unsafe
             // cast to uint trick, which eliminates < 0 check
             if ((uint)index >= (uint)count)
             {
-                throw new ArgumentOutOfRangeException();
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
             }
 
             // reduce count
@@ -296,7 +294,7 @@ namespace UnsafeCollections.Collections.Unsafe
             // cast to uint trick, which eliminates < 0 check
             if ((uint)index >= (uint)count)
             {
-                throw new ArgumentOutOfRangeException();
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
             }
 
             // reduce count
@@ -361,11 +359,15 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static void CopyTo<T>(UnsafeList* list, void* destination, int destinationIndex) where T : unmanaged
         {
+            if (destination == null)
+                throw new ArgumentNullException(nameof(destination));
+
+            if (destinationIndex < 0)
+                throw new ArgumentOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
+
             UDebug.Assert(list != null);
             UDebug.Assert(list->_items.Ptr != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == list->_typeHandle);
-            UDebug.Assert(destination != null);
-            UDebug.Assert(destinationIndex > -1);
 
             int numToCopy = list->_count;
             if (numToCopy == 0)
@@ -450,7 +452,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 get
                 {
                     if (_index == 0 || _index == _count + 1)
-                        throw new InvalidOperationException();
+                        throw new InvalidOperationException(ThrowHelper.InvalidOperation_EnumOpCantHappen);
 
                     return Current;
                 }

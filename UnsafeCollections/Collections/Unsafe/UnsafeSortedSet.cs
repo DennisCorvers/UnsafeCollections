@@ -26,6 +26,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
@@ -158,9 +159,13 @@ namespace UnsafeCollections.Collections.Unsafe
         public static void CopyTo<T>(UnsafeSortedSet* set, void* destination, int destinationIndex)
             where T : unmanaged
         {
+            if (destination == null)
+                throw new ArgumentNullException(nameof(destination));
+
+            if (destinationIndex < 0)
+                throw new ArgumentOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
             UDebug.Assert(set != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
-            UDebug.Assert(destination != null);
 
             var enumerator = GetEnumerator<T>(set);
             var dest = (T*)destination;

@@ -1,3 +1,1 @@
-﻿#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("UnsafeCollectionsTests")]
-#endif
+﻿[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("UnsafeCollectionsTests")]

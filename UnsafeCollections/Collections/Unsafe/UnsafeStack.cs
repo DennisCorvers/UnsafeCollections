@@ -33,14 +33,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
     public unsafe struct UnsafeStack
     {
-        const string STACK_FULL = "Fixed size stack is full";
-        const string STACK_EMPTY = "Stack is empty";
-
         const int DEFAULT_CAPACITY = 8;
 
         UnsafeBuffer _items;
@@ -49,7 +47,8 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static UnsafeStack* Allocate<T>(int capacity, bool fixedSize = false) where T : unmanaged
         {
-            UDebug.Assert(capacity > 0);
+            if (capacity < 1)
+                throw new ArgumentOutOfRangeException(nameof(capacity), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(capacity)));
 
             var stride = sizeof(T);
             UnsafeStack* stack;
@@ -158,11 +157,15 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static void CopyTo<T>(UnsafeStack* stack, void* destination, int destinationIndex) where T : unmanaged
         {
+            if (destination == null)
+                throw new ArgumentNullException(nameof(destination));
+
+            if (destinationIndex < 0)
+                throw new ArgumentOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
+
             UDebug.Assert(stack != null);
             UDebug.Assert(stack->_items.Ptr != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == stack->_typeHandle);
-            UDebug.Assert(destination != null);
-            UDebug.Assert(destinationIndex > -1);
 
             int numToCopy = stack->_count;
             if (numToCopy == 0)
@@ -187,7 +190,7 @@ namespace UnsafeCollections.Collections.Unsafe
             var count = stack->_count - 1;
             if ((uint)count >= (uint)stack->_items.Length)
             {
-                throw new InvalidOperationException(STACK_EMPTY);
+                throw new InvalidOperationException(ThrowHelper.InvalidOperation_EmptyStack);
             }
 
             return *stack->_items.Element<T>(count);
@@ -219,7 +222,7 @@ namespace UnsafeCollections.Collections.Unsafe
             var count = stack->_count - 1;
             if ((uint)count >= (uint)stack->_items.Length)
             {
-                throw new InvalidOperationException(STACK_EMPTY);
+                throw new InvalidOperationException(ThrowHelper.InvalidOperation_EmptyStack);
             }
 
             stack->_count = count;
@@ -266,7 +269,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 }
                 else
                 {
-                    throw new InvalidOperationException(STACK_FULL);
+                    throw new InvalidOperationException(ThrowHelper.InvalidOperation_CollectionFull);
                 }
             }
         }
@@ -390,7 +393,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 get
                 {
                     if (_index == 0 || _index == _count + 1)
-                        throw new InvalidOperationException();
+                        throw new InvalidOperationException(ThrowHelper.InvalidOperation_EnumOpCantHappen);
 
                     return Current;
                 }

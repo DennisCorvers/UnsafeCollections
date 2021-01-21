@@ -140,11 +140,12 @@ namespace UnsafeCollections.Collections.Unsafe
             {
                 var prime = _primeTable[i];
 
-                if(prime > value)
+                if (prime > value)
                 {
-                    return prime; 
+                    return prime;
                 }
             }
+
             throw new InvalidOperationException($"HashCollection can't get larger than {_primeTable[_primeTable.Length - 1]}");
         }
 

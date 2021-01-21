@@ -31,6 +31,7 @@ THE SOFTWARE.
 
 using System;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
@@ -51,10 +52,10 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static UnsafeRingBuffer* Allocate<T>(int capacity, bool overwrite) where T : unmanaged
         {
-            int stride = sizeof(T);
+            if (capacity < 1)
+                throw new ArgumentOutOfRangeException(nameof(capacity), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(capacity)));
 
-            UDebug.Assert(capacity > 0);
-            UDebug.Assert(stride > 0);
+            int stride = sizeof(T);
 
             // fixedSize means we are allocating the memory for the collection header and the items in it as one block
             var alignment = Memory.GetAlignment(stride);
@@ -131,7 +132,7 @@ namespace UnsafeCollections.Collections.Unsafe
             // cast to uint trick, which eliminates < 0 check
             if ((uint)index >= (uint)ring->_count)
             {
-                throw new IndexOutOfRangeException();
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
             }
 
             // assign element
@@ -153,7 +154,7 @@ namespace UnsafeCollections.Collections.Unsafe
             // cast to uint trick, which eliminates < 0 check
             if ((uint)index >= (uint)ring->_count)
             {
-                throw new IndexOutOfRangeException();
+                throw new IndexOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
             }
             return ring->_items.Element<T>((ring->_tail + index) % ring->_items.Length);
         }
@@ -279,11 +280,15 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static void CopyTo<T>(UnsafeRingBuffer* ringbuffer, void* destination, int destinationIndex) where T : unmanaged
         {
+            if (destination == null)
+                throw new ArgumentNullException(nameof(destination));
+
+            if (destinationIndex < 0)
+                throw new ArgumentOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
+
             UDebug.Assert(ringbuffer != null);
             UDebug.Assert(ringbuffer->_items.Ptr != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == ringbuffer->_typeHandle);
-            UDebug.Assert(destination != null);
-            UDebug.Assert(destinationIndex > -1);
 
 
             int numToCopy = ringbuffer->_count;

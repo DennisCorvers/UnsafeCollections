@@ -215,6 +215,12 @@ namespace UnsafeCollections.Collections.Unsafe
             where K : unmanaged, IComparable<K>
             where V : unmanaged
         {
+            if (destination == null)
+                throw new ArgumentNullException(nameof(destination));
+
+            if (GetCount(map) + (uint)destinationIndex > destination.Length)
+                throw new ArgumentOutOfRangeException(ThrowHelper.Arg_ArrayPlusOffTooSmall);
+
             UDebug.Assert(map != null);
             UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
             UDebug.Assert(typeof(V).TypeHandle.Value == map->_typeHandleValue);

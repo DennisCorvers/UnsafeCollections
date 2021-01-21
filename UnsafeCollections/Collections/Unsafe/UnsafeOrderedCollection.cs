@@ -24,13 +24,13 @@ THE SOFTWARE.
 
 using System;
 using System.Runtime.InteropServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
     internal unsafe struct UnsafeOrderedCollection
     {
         public const int MAX_DEPTH = 64;
-        const string COLLECTION_FULL = "Fixed size ordered collection is full";
 
         [StructLayout(LayoutKind.Sequential)]
         public unsafe struct Entry
@@ -90,7 +90,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 if (collection->Entries.Dynamic == 1)
                     Expand(collection);
                 else
-                    throw new InvalidOperationException(COLLECTION_FULL);
+                    throw new InvalidOperationException(ThrowHelper.InvalidOperation_CollectionFull);
             }
 
             return InsertPerform<T>(collection, key, update);

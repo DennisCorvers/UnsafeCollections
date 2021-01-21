@@ -55,7 +55,7 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             if (Interlocked.CompareExchange(ref _lock, Unlocked, Locked) != Locked)
             {
-                throw new UnsafeLockException();
+                throw new UnsafeLockException("Trying to unlock a lock that was not locked.");
             }
         }
     }

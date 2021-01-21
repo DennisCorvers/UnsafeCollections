@@ -198,6 +198,12 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public void CopyTo<T>(void* destination, int destinationIndex) where T : unmanaged
         {
+            if (destination == null)
+                throw new ArgumentNullException(nameof(destination));
+
+            if (destinationIndex < 0)
+                throw new ArgumentOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
+
             UDebug.Assert(typeof(T).TypeHandle.Value == _typeHandle);
 
             if (destination == null)
@@ -213,7 +219,7 @@ namespace UnsafeCollections.Collections.Unsafe
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
-            if (count > _length)
+            if ((uint)sourceIndex + (uint)count > _length)
                 throw new ArgumentException(ThrowHelper.Arg_ArrayPlusOffTooSmall);
 
             Memory.MemCpy(_buffer, (T*)source + sourceIndex, count * sizeof(T));

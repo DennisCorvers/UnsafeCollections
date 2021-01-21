@@ -33,14 +33,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
     public unsafe struct UnsafeQueue
     {
-        const string QUEUE_EMPTY = "Queue is empty";
-        const string QUEUE_FIXED_SIZE_FULL = "Fixed size queue full";
-
         UnsafeBuffer _items;
         IntPtr _typeHandle;
         int _count;
@@ -50,7 +48,8 @@ namespace UnsafeCollections.Collections.Unsafe
 
         public static UnsafeQueue* Allocate<T>(int capacity, bool fixedSize = false) where T : unmanaged
         {
-            UDebug.Assert(capacity > 0);
+            if (capacity < 1)
+                throw new ArgumentOutOfRangeException(nameof(capacity), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(capacity)));
 
             int stride = sizeof(T);
 
@@ -173,7 +172,7 @@ namespace UnsafeCollections.Collections.Unsafe
                 }
                 else
                 {
-                    throw new InvalidOperationException(QUEUE_FIXED_SIZE_FULL);
+                    throw new InvalidOperationException(ThrowHelper.InvalidOperation_CollectionFull);
                 }
             }
 
@@ -205,7 +204,7 @@ namespace UnsafeCollections.Collections.Unsafe
             var count = queue->_count;
             if (count == 0)
             {
-                throw new InvalidOperationException(QUEUE_EMPTY);
+                throw new InvalidOperationException(ThrowHelper.InvalidOperation_EmptyQueue);
             }
 
             var head = queue->_head;
@@ -269,7 +268,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
             if (queue->_count == 0)
             {
-                throw new InvalidOperationException(QUEUE_EMPTY);
+                throw new InvalidOperationException(ThrowHelper.InvalidOperation_EmptyQueue);
             }
 
             return *queue->_items.Element<T>(queue->_head);
