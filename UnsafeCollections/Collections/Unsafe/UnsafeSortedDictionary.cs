@@ -260,7 +260,6 @@ namespace UnsafeCollections.Collections.Unsafe
             where K : unmanaged, IComparable<K>
             where V : unmanaged
         {
-
             UnsafeOrderedCollection.Enumerator _iterator;
             readonly int _keyOffset;
             readonly int _valueOffset;
@@ -325,6 +324,120 @@ namespace UnsafeCollections.Collections.Unsafe
                 return this;
             }
             IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
+            {
+                return this;
+            }
+        }
+
+        /// <summary>
+        /// Enumerator specifically used for enumerating the Keys of a OrderedSet
+        /// </summary>
+        public unsafe struct KeyEnumerator<K> : IUnsafeEnumerator<K>
+            where K : unmanaged, IComparable<K>
+        {
+            UnsafeOrderedCollection.Enumerator _iterator;
+            readonly int _keyOffset;
+
+            public KeyEnumerator(UnsafeSortedDictionary* dictionary)
+            {
+                _keyOffset = dictionary->_collection.KeyOffset;
+                _iterator = new UnsafeOrderedCollection.Enumerator(&dictionary->_collection);
+            }
+
+            public K Current
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get
+                {
+                    UDebug.Assert(_iterator.Current != null);
+                    return *(K*)((byte*)_iterator.Current + _keyOffset);
+                }
+            }
+
+            object IEnumerator.Current
+            {
+                get { return Current; }
+            }
+
+            public bool MoveNext()
+            {
+                return _iterator.MoveNext();
+            }
+
+            public void Reset()
+            {
+                _iterator.Reset();
+            }
+
+            public void Dispose()
+            { }
+
+            public KeyEnumerator<K> GetEnumerator()
+            {
+                return this;
+            }
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return this;
+            }
+            IEnumerator<K> IEnumerable<K>.GetEnumerator()
+            {
+                return this;
+            }
+        }
+
+        /// <summary>
+        /// Enumerator specifically used for enumerating the Values of a OrderedSet
+        /// </summary>
+        public unsafe struct ValueEnumerator<V> : IUnsafeEnumerator<V>
+            where V : unmanaged
+        {
+            UnsafeOrderedCollection.Enumerator _iterator;
+            readonly int _valueOffset;
+
+            public ValueEnumerator(UnsafeSortedDictionary* dictionary)
+            {
+                _valueOffset = dictionary->_valueOffset;
+                _iterator = new UnsafeOrderedCollection.Enumerator(&dictionary->_collection);
+            }
+
+            public V Current
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get
+                {
+                    UDebug.Assert(_iterator.Current != null);
+                    return *(V*)((byte*)_iterator.Current + _valueOffset);
+                }
+            }
+
+            object IEnumerator.Current
+            {
+                get { return Current; }
+            }
+
+            public bool MoveNext()
+            {
+                return _iterator.MoveNext();
+            }
+
+            public void Reset()
+            {
+                _iterator.Reset();
+            }
+
+            public void Dispose()
+            { }
+
+            public ValueEnumerator<V> GetEnumerator()
+            {
+                return this;
+            }
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return this;
+            }
+            IEnumerator<V> IEnumerable<V>.GetEnumerator()
             {
                 return this;
             }

@@ -20,6 +20,7 @@ namespace UnsafeCollectionsTests.Unsafe
             UnsafeSortedSet.Free(set);
         }
 
+#if DEBUG
         [Test]
         public void InvalidTypeTest()
         {
@@ -29,6 +30,7 @@ namespace UnsafeCollectionsTests.Unsafe
 
             UnsafeSortedSet.Free(set);
         }
+#endif
 
         [Test]
         public void IteratorTest()

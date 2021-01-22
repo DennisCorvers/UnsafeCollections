@@ -234,17 +234,17 @@ namespace UnsafeCollections.Collections.Native
                 get => _dictionary.IsCreated;
             }
 
-            public Enumerator GetEnumerator()
+            public UnsafeSortedDictionary.KeyEnumerator<K> GetEnumerator()
             {
-                return new Enumerator(_dictionary);
+                return new UnsafeSortedDictionary.KeyEnumerator<K>(_dictionary.m_inner);
             }
             IEnumerator<K> IEnumerable<K>.GetEnumerator()
             {
-                return new Enumerator(_dictionary);
+                return new UnsafeSortedDictionary.KeyEnumerator<K>(_dictionary.m_inner);
             }
             IEnumerator IEnumerable.GetEnumerator()
             {
-                return new Enumerator(_dictionary);
+                return new UnsafeSortedDictionary.KeyEnumerator<K>(_dictionary.m_inner);
             }
 
             public void CopyTo(K[] array, int index)
@@ -307,47 +307,6 @@ namespace UnsafeCollections.Collections.Native
             {
                 throw new NotSupportedException(NOT_SUPPORTED_MUTATION);
             }
-
-            public struct Enumerator : IEnumerator<K>, IEnumerator
-            {
-                public UnsafeSortedDictionary.Enumerator<K, V> _dictEnum;
-
-                internal Enumerator(NativeSortedDictionary<K, V> dictionary)
-                {
-                    _dictEnum = new UnsafeSortedDictionary.Enumerator<K, V>(dictionary.m_inner);
-                }
-
-                public K Current
-                {
-                    get
-                    {
-                        return _dictEnum.CurrentKey;
-                    }
-                }
-
-                object IEnumerator.Current
-                {
-                    get
-                    {
-                        return _dictEnum.Current;
-                    }
-                }
-
-                public void Dispose()
-                {
-                    _dictEnum.Dispose();
-                }
-
-                public bool MoveNext()
-                {
-                    return _dictEnum.MoveNext();
-                }
-
-                public void Reset()
-                {
-                    _dictEnum.Reset();
-                }
-            }
         }
 
         [DebuggerDisplay("Count = {Count}")]
@@ -383,17 +342,17 @@ namespace UnsafeCollections.Collections.Native
                 get => _dictionary.IsCreated;
             }
 
-            public Enumerator GetEnumerator()
+            public UnsafeSortedDictionary.ValueEnumerator<V> GetEnumerator()
             {
-                return new Enumerator(_dictionary);
+                return new UnsafeSortedDictionary.ValueEnumerator<V>(_dictionary.m_inner);
             }
             IEnumerator<V> IEnumerable<V>.GetEnumerator()
             {
-                return new Enumerator(_dictionary);
+                return new UnsafeSortedDictionary.ValueEnumerator<V>(_dictionary.m_inner);
             }
             IEnumerator IEnumerable.GetEnumerator()
             {
-                return new Enumerator(_dictionary);
+                return new UnsafeSortedDictionary.ValueEnumerator<V>(_dictionary.m_inner);
             }
 
             public void CopyTo(V[] array, int index)
@@ -463,47 +422,6 @@ namespace UnsafeCollections.Collections.Native
             void IDisposable.Dispose()
             {
                 throw new NotSupportedException(NOT_SUPPORTED_MUTATION);
-            }
-
-            public struct Enumerator : IEnumerator<V>, IEnumerator
-            {
-                public UnsafeSortedDictionary.Enumerator<K, V> _dictEnum;
-
-                internal Enumerator(NativeSortedDictionary<K, V> dictionary)
-                {
-                    _dictEnum = new UnsafeSortedDictionary.Enumerator<K, V>(dictionary.m_inner);
-                }
-
-                public V Current
-                {
-                    get
-                    {
-                        return _dictEnum.CurrentValue;
-                    }
-                }
-
-                object IEnumerator.Current
-                {
-                    get
-                    {
-                        return _dictEnum.CurrentValue;
-                    }
-                }
-
-                public void Dispose()
-                {
-                    _dictEnum.Dispose();
-                }
-
-                public bool MoveNext()
-                {
-                    return _dictEnum.MoveNext();
-                }
-
-                public void Reset()
-                {
-                    _dictEnum.Reset();
-                }
             }
         }
     }
