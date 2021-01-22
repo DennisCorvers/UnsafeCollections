@@ -23,25 +23,23 @@ You **must** instantiate the collections with any non-default constructor. After
 - Ring Buffer
 - Min Heap
 - Max Heap
-- Hash Map (Dictionary)
-- Hash Set
-- Ordered Map (Not Complete)
-- Ordered Set
+- Dictionary
+- HashSet
+- SortedDictionary
+- SortedSet
 - Concurrent SPSC Lockfree Queue
 - Concurrent MPSC Lockfree Queue
 - Concurrent MPMC Queue (Lockfree with fixed size) 
 
 ## Planned Additions
 - Concurrent Multi Producer Multi Consumer Dictionary (MPMC, mostly lockless)
+- Single-Value heap
+- Linked List
 
 ## Build
 Use Preprocessor directive UNITY to build the project using the Unity memory allocators instead of the .Net ones.
 
 The library is usable in both .Net and Unity.
-
-### ToDo
-- Add type safety for all Collections.
-- Add wrappers for often-used collections to make the API easier to use.
 
 ## Performance
 To be added...
