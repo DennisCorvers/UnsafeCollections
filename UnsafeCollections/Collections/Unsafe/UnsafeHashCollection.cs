@@ -31,7 +31,7 @@ namespace UnsafeCollections.Collections.Unsafe
 {
     internal unsafe struct UnsafeHashCollection
     {
-        public enum EntryState
+        internal enum EntryState
         {
             None = 0,
             Free = 1,
@@ -88,38 +88,39 @@ namespace UnsafeCollections.Collections.Unsafe
             }
         }
 
-        static int[] _primeTable = new[] {
-      3,
-      7,
-      17,
-      29,
-      53,
-      97,
-      193,
-      389,
-      769,
-      1543,
-      3079,
-      6151,
-      12289,
-      24593,
-      49157,
-      98317,
-      196613,
-      393241,
-      786433,
-      1572869,
-      3145739,
-      6291469,
-      12582917,
-      25165843,
-      50331653,
-      100663319,
-      201326611,
-      402653189,
-      805306457,
-      1610612741
-    };
+        static int[] _primeTable = new[]
+        {
+            3,
+            7,
+            17,
+            29,
+            53,
+            97,
+            193,
+            389,
+            769,
+            1543,
+            3079,
+            6151,
+            12289,
+            24593,
+            49157,
+            98317,
+            196613,
+            393241,
+            786433,
+            1572869,
+            3145739,
+            6291469,
+            12582917,
+            25165843,
+            50331653,
+            100663319,
+            201326611,
+            402653189,
+            805306457,
+            1610612741
+        };
 
         public Entry** Buckets;
         public Entry* FreeHead;
@@ -174,13 +175,14 @@ namespace UnsafeCollections.Collections.Unsafe
             return *(T*)((byte*)entry + collection->KeyOffset);
         }
 
-        public static Entry* Find<T>(UnsafeHashCollection* collection, T value, int valueHash) where T : unmanaged, IEquatable<T>
+        public static Entry* Find<T>(UnsafeHashCollection* collection, T key, int valueHash)
+            where T : unmanaged, IEquatable<T>
         {
             var bucketHead = collection->Buckets[valueHash % collection->Entries.Length];
 
             while (bucketHead != null)
             {
-                if (bucketHead->Hash == valueHash && value.Equals(*(T*)((byte*)bucketHead + collection->KeyOffset)))
+                if (bucketHead->Hash == valueHash && key.Equals(*(T*)((byte*)bucketHead + collection->KeyOffset)))
                 {
                     return bucketHead;
                 }
@@ -193,7 +195,7 @@ namespace UnsafeCollections.Collections.Unsafe
             return null;
         }
 
-        public static bool Remove<T>(UnsafeHashCollection* collection, T value, int valueHash) where T : unmanaged, IEquatable<T>
+        public static bool Remove<T>(UnsafeHashCollection* collection, T key, int valueHash) where T : unmanaged, IEquatable<T>
         {
             var bucketHash = valueHash % collection->Entries.Length;
             var bucketHead = collection->Buckets[valueHash % collection->Entries.Length];
@@ -201,7 +203,7 @@ namespace UnsafeCollections.Collections.Unsafe
 
             while (bucketHead != null)
             {
-                if (bucketHead->Hash == valueHash && value.Equals(*(T*)((byte*)bucketHead + collection->KeyOffset)))
+                if (bucketHead->Hash == valueHash && key.Equals(*(T*)((byte*)bucketHead + collection->KeyOffset)))
                 {
                     // if previous was null, this means we're at the head of the list
                     if (bucketPrev == null)
@@ -237,7 +239,7 @@ namespace UnsafeCollections.Collections.Unsafe
             return false;
         }
 
-        public static Entry* Insert<T>(UnsafeHashCollection* collection, T value, int valueHash) where T : unmanaged
+        public static Entry* Insert<T>(UnsafeHashCollection* collection, T key, int valueHash) where T : unmanaged
         {
             Entry* entry;
 
@@ -292,7 +294,7 @@ namespace UnsafeCollections.Collections.Unsafe
             entry->State = EntryState.Used;
 
             // store value
-            *(T*)((byte*)entry + collection->KeyOffset) = value;
+            *(T*)((byte*)entry + collection->KeyOffset) = key;
 
             // store as head on bucket
             collection->Buckets[bucketHash] = entry;
@@ -317,7 +319,8 @@ namespace UnsafeCollections.Collections.Unsafe
         {
             UDebug.Assert(collection->Entries.Dynamic == 1);
 
-            var capacity = GetNextPrime(collection->Entries.Length);
+            // We need to grab the pext prime, so at least current length + 1
+            var capacity = GetNextPrime(collection->Entries.Length + 1);
 
             UDebug.Assert(capacity >= collection->Entries.Length);
 

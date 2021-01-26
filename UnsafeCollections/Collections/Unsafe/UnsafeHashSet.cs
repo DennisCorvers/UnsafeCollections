@@ -26,6 +26,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
 {
@@ -129,7 +130,7 @@ namespace UnsafeCollections.Collections.Unsafe
         }
 
         public static bool Add<T>(UnsafeHashSet* set, T key)
-          where T : unmanaged, IEquatable<T>
+            where T : unmanaged, IEquatable<T>
         {
             UDebug.Assert(set != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
@@ -145,7 +146,8 @@ namespace UnsafeCollections.Collections.Unsafe
             return false;
         }
 
-        public static bool Remove<T>(UnsafeHashSet* set, T key) where T : unmanaged, IEquatable<T>
+        public static bool Remove<T>(UnsafeHashSet* set, T key)
+            where T : unmanaged, IEquatable<T>
         {
             UDebug.Assert(set != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
@@ -153,15 +155,40 @@ namespace UnsafeCollections.Collections.Unsafe
             return UnsafeHashCollection.Remove<T>(&set->_collection, key, key.GetHashCode());
         }
 
-        public static bool Contains<T>(UnsafeHashSet* set, T key) where T : unmanaged, IEquatable<T>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Contains<T>(UnsafeHashSet* set, T key) 
+            where T : unmanaged, IEquatable<T>
         {
             UDebug.Assert(set != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
 
-            return UnsafeHashCollection.Find<T>(&set->_collection, key, key.GetHashCode()) != null;
+            return UnsafeHashCollection.Find(&set->_collection, key, key.GetHashCode()) != null;
         }
 
-        public static Enumerator<T> GetEnumerator<T>(UnsafeHashSet* set) where T : unmanaged
+        public static void CopyTo<T>(UnsafeHashSet* set, void* destination, int destinationIndex)
+            where T : unmanaged
+        {
+            if (destination == null)
+                throw new ArgumentNullException(nameof(destination));
+
+            if (destinationIndex < 0)
+                throw new ArgumentOutOfRangeException(ThrowHelper.ArgumentOutOfRange_Index);
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+
+            var enumerator = GetEnumerator<T>(set);
+            var dest = (T*)destination;
+
+            int i = 0;
+            while (enumerator.MoveNext())
+            {
+                dest[destinationIndex + i] = enumerator.Current;
+                i++;
+            }
+        }
+
+        public static Enumerator<T> GetEnumerator<T>(UnsafeHashSet* set) 
+            where T : unmanaged
         {
             UDebug.Assert(set != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
@@ -169,12 +196,28 @@ namespace UnsafeCollections.Collections.Unsafe
             return new Enumerator<T>(set);
         }
 
-        public static void And<T>(UnsafeHashSet* set, UnsafeHashSet* other) where T : unmanaged, IEquatable<T>
+        /// <summary>
+        /// Modifies the current hashset to contain only elements that are present in that hashset and in the specified hashset.
+        /// </summary>
+        public static void IntersectsWith<T>(UnsafeHashSet* set, UnsafeHashSet* other)
+            where T : unmanaged, IEquatable<T>
         {
             UDebug.Assert(set != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
             UDebug.Assert(other != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == other->_typeHandle);
+
+            // When this set has no elements, there is nothing to intersect.
+            // When this set equals other, it is already intersecting.
+            if (GetCount(set) == 0 || set == other)
+                return;
+
+            // When the other set has no elements, clear this one completely
+            if (GetCount(other) == 0)
+            {
+                Clear(set);
+                return;
+            }
 
             for (int i = set->_collection.UsedCount - 1; i >= 0; --i)
             {
@@ -193,7 +236,11 @@ namespace UnsafeCollections.Collections.Unsafe
             }
         }
 
-        public static void Or<T>(UnsafeHashSet* set, UnsafeHashSet* other) where T : unmanaged, IEquatable<T>
+        /// <summary>
+        /// Modifies the current hashset to contain all elements that are present in itself, the specified hashset, or both.
+        /// </summary>
+        public static void UnionWith<T>(UnsafeHashSet* set, UnsafeHashSet* other)
+            where T : unmanaged, IEquatable<T>
         {
             UDebug.Assert(set != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
@@ -211,12 +258,27 @@ namespace UnsafeCollections.Collections.Unsafe
             }
         }
 
-        public static void Xor<T>(UnsafeHashSet* set, UnsafeHashSet* other) where T : unmanaged, IEquatable<T>
+        /// <summary>
+        /// Removes all elements in the specified hashset from the current hashset.
+        /// </summary>
+        public static void ExceptWith<T>(UnsafeHashSet* set, UnsafeHashSet* other)
+            where T : unmanaged, IEquatable<T>
         {
             UDebug.Assert(set != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
             UDebug.Assert(other != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == other->_typeHandle);
+
+            // When this set has no elements, return
+            if (GetCount(set) == 0)
+                return;
+
+            // A set except itself is an empty set.
+            if (other == set)
+            {
+                Clear(set);
+                return;
+            }
 
             for (int i = other->_collection.UsedCount - 1; i >= 0; --i)
             {
@@ -226,23 +288,51 @@ namespace UnsafeCollections.Collections.Unsafe
                     var key = *(T*)((byte*)entry + other->_collection.KeyOffset);
                     var keyHash = key.GetHashCode();
 
-                    // if we don't find it in our collection, add it
-                    if (UnsafeHashCollection.Find<T>(&set->_collection, key, keyHash) == null)
-                    {
-                        UnsafeHashCollection.Insert<T>(&set->_collection, key, keyHash);
-                    }
+                    UnsafeHashCollection.Remove(&set->_collection, key, keyHash);
+                }
+            }
+        }
 
-                    // if we do, remove it
-                    else
+        /// <summary>
+        /// Modifies the current hashset to contain only elements that are present either in this hashset or in the specified hashset, but not both.
+        /// </summary>
+        public static void SymmetricExcept<T>(UnsafeHashSet* set, UnsafeHashSet* other)
+            where T : unmanaged, IEquatable<T>
+        {
+            UDebug.Assert(set != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == set->_typeHandle);
+            UDebug.Assert(other != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == other->_typeHandle);
+
+            // When this set has no elements, return
+            if (GetCount(set) == 0)
+                return;
+
+            // A set except itself is an empty set.
+            if (other == set)
+            {
+                Clear(set);
+                return;
+            }
+
+            for (int i = other->_collection.UsedCount - 1; i >= 0; --i)
+            {
+                var entry = UnsafeHashCollection.GetEntry(&other->_collection, i);
+                if (entry->State == UnsafeHashCollection.EntryState.Used)
+                {
+                    var key = *(T*)((byte*)entry + other->_collection.KeyOffset);
+                    var keyHash = key.GetHashCode();
+
+                    if (!UnsafeHashCollection.Remove(&set->_collection, key, keyHash))
                     {
-                        UnsafeHashCollection.Remove<T>(&set->_collection, key, keyHash);
+                        UnsafeHashCollection.Insert(&set->_collection, key, keyHash);
                     }
                 }
             }
         }
 
-
-        public unsafe struct Enumerator<T> : IUnsafeEnumerator<T> where T : unmanaged
+        public unsafe struct Enumerator<T> : IUnsafeEnumerator<T> 
+            where T : unmanaged
         {
             UnsafeHashCollection.Enumarator _iterator;
             readonly int _keyOffset;

@@ -255,6 +255,24 @@ namespace UnsafeCollections.Collections.Unsafe
             return new Enumerator<K, V>(map);
         }
 
+        public static KeyEnumerator<K> GetKeyEnumerator<K>(UnsafeSortedDictionary* map)
+            where K : unmanaged, IComparable<K>
+        {
+            UDebug.Assert(map != null);
+            UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
+
+            return new KeyEnumerator<K>(map);
+        }
+
+        public static ValueEnumerator<V> GetValueEnumerator<V>(UnsafeSortedDictionary* map)
+            where V : unmanaged
+        {
+            UDebug.Assert(map != null);
+            UDebug.Assert(typeof(V).TypeHandle.Value == map->_typeHandleValue);
+
+            return new ValueEnumerator<V>(map);
+        }
+
 
         public unsafe struct Enumerator<K, V> : IUnsafeEnumerator<KeyValuePair<K, V>>
             where K : unmanaged, IComparable<K>

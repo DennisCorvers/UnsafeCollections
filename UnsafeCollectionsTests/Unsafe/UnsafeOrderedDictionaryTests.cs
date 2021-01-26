@@ -70,6 +70,52 @@ namespace UnsafeCollectionsTests.Unsafe
         }
 
         [Test]
+        public void KeyIteratorTest()
+        {
+            var set = UnsafeSortedDictionary.Allocate<int, decimal>(10);
+
+            // Fill set
+            for (int i = 10; i >= 0; i--)
+            {
+                // Add in reverse order
+                UnsafeSortedDictionary.Add<int, decimal>(set, i, i * i);
+            }
+
+            var enumerator = UnsafeSortedDictionary.GetKeyEnumerator<int>(set);
+
+            for (int i = 0; i < 10; i++)
+            {
+                enumerator.MoveNext();
+                Assert.AreEqual(i, enumerator.Current);
+            }
+
+            UnsafeSortedDictionary.Free(set);
+        }
+
+        [Test]
+        public void ValueIteratorTest()
+        {
+            var set = UnsafeSortedDictionary.Allocate<int, decimal>(10);
+
+            // Fill set
+            for (int i = 10; i >= 0; i--)
+            {
+                // Add in reverse order
+                UnsafeSortedDictionary.Add<int, decimal>(set, i, i * i);
+            }
+
+            var enumerator = UnsafeSortedDictionary.GetValueEnumerator<decimal>(set);
+
+            for (int i = 0; i < 10; i++)
+            {
+                enumerator.MoveNext();
+                Assert.AreEqual(i * i, enumerator.Current);
+            }
+
+            UnsafeSortedDictionary.Free(set);
+        }
+
+        [Test]
         public void ExpandFailedTest()
         {
             var set = UnsafeSortedDictionary.Allocate<int, float>(8, true);
@@ -183,10 +229,9 @@ namespace UnsafeCollectionsTests.Unsafe
         [Test]
         public void TryGetValueTest()
         {
-            int value = 0;
             var set = UnsafeSortedDictionary.Allocate<int, int>(10);
 
-            Assert.IsFalse(UnsafeSortedDictionary.TryGetValue(set, 1, out value));
+            Assert.IsFalse(UnsafeSortedDictionary.TryGetValue(set, 1, out int value));
 
             UnsafeSortedDictionary.Add(set, 1, 1);
             UnsafeSortedDictionary.Add(set, 7, 2);

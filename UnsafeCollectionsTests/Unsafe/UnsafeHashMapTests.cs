@@ -4,7 +4,7 @@ using UnsafeCollections.Collections.Unsafe;
 
 namespace UnsafeCollectionsTests.Unsafe
 {
-    public unsafe class UnsafeHashDictionaryTests
+    public unsafe class UnsafeDictionaryTests
     {
 
         private UnsafeDictionary* Dictionary(params int[] values)
@@ -34,7 +34,7 @@ namespace UnsafeCollectionsTests.Unsafe
         }
 
         [Test]
-        public void ClearHashDictionary()
+        public void ClearDictionary()
         {
             var map = Dictionary(1, 2, 3);
             Assert.IsTrue(UnsafeDictionary.ContainsKey(map, 2));
