@@ -1,32 +1,9 @@
-﻿/*
-The MIT License (MIT)
-
-Copyright (c) 2021 Dennis Corvers
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
-
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using UnsafeCollections.Collections.Unsafe;
 using UnsafeCollections.Debug.TypeProxies;
 
@@ -34,11 +11,11 @@ namespace UnsafeCollections.Collections.Native
 {
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(typeof(NativeDictionaryDebugView<,>))]
-    public unsafe struct NativeSortedDictionary<K, V> : INativeDictionary<K, V>, IReadOnlyDictionary<K, V>
-        where K : unmanaged, IComparable<K>
+    public unsafe struct NativeDictionary<K, V> : INativeDictionary<K, V>, IReadOnlyDictionary<K, V>
+        where K : unmanaged, IEquatable<K>
         where V : unmanaged
     {
-        private UnsafeSortedDictionary* m_inner;
+        private UnsafeDictionary* m_inner;
 
         public bool IsCreated
         {
@@ -53,7 +30,7 @@ namespace UnsafeCollections.Collections.Native
             {
                 if (m_inner == null)
                     throw new NullReferenceException();
-                return UnsafeSortedDictionary.GetCount(m_inner);
+                return UnsafeDictionary.GetCount(m_inner);
             }
         }
         public int Capacity
@@ -62,7 +39,7 @@ namespace UnsafeCollections.Collections.Native
             {
                 if (m_inner == null)
                     throw new NullReferenceException();
-                return UnsafeSortedDictionary.GetCapacity(m_inner);
+                return UnsafeDictionary.GetCapacity(m_inner);
             }
         }
         public bool IsFixedSize
@@ -71,7 +48,7 @@ namespace UnsafeCollections.Collections.Native
             {
                 if (m_inner == null)
                     throw new NullReferenceException();
-                return UnsafeSortedDictionary.IsFixedSize(m_inner);
+                return UnsafeDictionary.IsFixedSize(m_inner);
             }
         }
         public bool IsReadOnly
@@ -82,9 +59,9 @@ namespace UnsafeCollections.Collections.Native
         public V this[K key]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return UnsafeSortedDictionary.Get<K, V>(m_inner, key); }
+            get { return UnsafeDictionary.Get<K, V>(m_inner, key); }
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set { UnsafeSortedDictionary.Set<K, V>(m_inner, key, value); }
+            set { UnsafeDictionary.Set<K, V>(m_inner, key, value); }
         }
 
         public KeyCollection Keys
@@ -115,26 +92,32 @@ namespace UnsafeCollections.Collections.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal UnsafeSortedDictionary* GetInnerCollection()
+        internal UnsafeDictionary* GetInnerCollection()
         {
             return m_inner;
         }
 
-        public NativeSortedDictionary(int capacity)
+        public NativeDictionary(int capacity)
         {
-            m_inner = UnsafeSortedDictionary.Allocate<K, V>(capacity, false);
+            m_inner = UnsafeDictionary.Allocate<K, V>(capacity, false);
         }
 
-        public NativeSortedDictionary(int capacity, bool fixedSize)
+        public NativeDictionary(int capacity, bool fixedSize)
         {
-            m_inner = UnsafeSortedDictionary.Allocate<K, V>(capacity, fixedSize);
+            m_inner = UnsafeDictionary.Allocate<K, V>(capacity, fixedSize);
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(K key, V value)
         {
-            UnsafeSortedDictionary.Add<K, V>(m_inner, key, value);
+            UnsafeDictionary.Add<K, V>(m_inner, key, value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryAdd(K key, V value)
+        {
+            return UnsafeDictionary.TryAdd<K, V>(m_inner, key, value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -143,15 +126,9 @@ namespace UnsafeCollections.Collections.Native
             Add(item.Key, item.Value);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryAdd(K key, V value)
-        {
-            return UnsafeSortedDictionary.TryAdd(m_inner, key, value);
-        }
-
         public void Clear()
         {
-            UnsafeSortedDictionary.Clear(m_inner);
+            UnsafeDictionary.Clear(m_inner);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -169,18 +146,18 @@ namespace UnsafeCollections.Collections.Native
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ContainsKey(K key)
         {
-            return UnsafeSortedDictionary.ContainsKey<K>(m_inner, key);
+            return UnsafeDictionary.ContainsKey<K>(m_inner, key);
         }
 
         public void CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
         {
-            UnsafeSortedDictionary.CopyTo<K, V>(m_inner, array, arrayIndex);
+            UnsafeDictionary.CopyTo<K, V>(m_inner, array, arrayIndex);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Remove(K key)
         {
-            return UnsafeSortedDictionary.Remove<K>(m_inner, key);
+            return UnsafeDictionary.Remove<K>(m_inner, key);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -192,20 +169,20 @@ namespace UnsafeCollections.Collections.Native
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetValue(K key, out V value)
         {
-            return UnsafeSortedDictionary.TryGetValue<K, V>(m_inner, key, out value);
+            return UnsafeDictionary.TryGetValue<K, V>(m_inner, key, out value);
         }
 
-        public UnsafeSortedDictionary.Enumerator<K, V> GetEnumerator()
+        public UnsafeDictionary.Enumerator<K, V> GetEnumerator()
         {
-            return UnsafeSortedDictionary.GetEnumerator<K, V>(m_inner);
+            return UnsafeDictionary.GetEnumerator<K, V>(m_inner);
         }
         IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
         {
-            return UnsafeSortedDictionary.GetEnumerator<K, V>(m_inner);
+            return UnsafeDictionary.GetEnumerator<K, V>(m_inner);
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return UnsafeSortedDictionary.GetEnumerator<K, V>(m_inner);
+            return UnsafeDictionary.GetEnumerator<K, V>(m_inner);
         }
 
 #if UNITY
@@ -213,7 +190,7 @@ namespace UnsafeCollections.Collections.Native
 #endif
         public void Dispose()
         {
-            UnsafeSortedDictionary.Free(m_inner);
+            UnsafeDictionary.Free(m_inner);
             m_inner = null;
         }
 
@@ -223,9 +200,9 @@ namespace UnsafeCollections.Collections.Native
         public unsafe struct KeyCollection : INativeCollection<K>, INativeReadOnlyCollection<K>
         {
             private const string NOT_SUPPORTED_MUTATION = "Mutating a key collection derived from a dictionary is not allowed.";
-            private readonly NativeSortedDictionary<K, V> _dictionary;
+            private readonly NativeDictionary<K, V> _dictionary;
 
-            public KeyCollection(NativeSortedDictionary<K, V> dictionary)
+            public KeyCollection(NativeDictionary<K, V> dictionary)
             {
                 if (!dictionary.IsCreated)
                     throw new ArgumentNullException(nameof(dictionary));
@@ -251,17 +228,17 @@ namespace UnsafeCollections.Collections.Native
                 get => _dictionary.IsCreated;
             }
 
-            public UnsafeSortedDictionary.KeyEnumerator<K> GetEnumerator()
+            public UnsafeDictionary.KeyEnumerator<K> GetEnumerator()
             {
-                return new UnsafeSortedDictionary.KeyEnumerator<K>(_dictionary.m_inner);
+                return new UnsafeDictionary.KeyEnumerator<K>(_dictionary.m_inner);
             }
             IEnumerator<K> IEnumerable<K>.GetEnumerator()
             {
-                return new UnsafeSortedDictionary.KeyEnumerator<K>(_dictionary.m_inner);
+                return new UnsafeDictionary.KeyEnumerator<K>(_dictionary.m_inner);
             }
             IEnumerator IEnumerable.GetEnumerator()
             {
-                return new UnsafeSortedDictionary.KeyEnumerator<K>(_dictionary.m_inner);
+                return new UnsafeDictionary.KeyEnumerator<K>(_dictionary.m_inner);
             }
 
             public void CopyTo(K[] array, int index)
@@ -331,9 +308,9 @@ namespace UnsafeCollections.Collections.Native
         public unsafe struct ValueCollection : INativeCollection<V>, INativeReadOnlyCollection<V>
         {
             private const string NOT_SUPPORTED_MUTATION = "Mutating a key collection derived from a dictionary is not allowed.";
-            private readonly NativeSortedDictionary<K, V> _dictionary;
+            private readonly NativeDictionary<K, V> _dictionary;
 
-            public ValueCollection(NativeSortedDictionary<K, V> dictionary)
+            public ValueCollection(NativeDictionary<K, V> dictionary)
             {
                 if (!dictionary.IsCreated)
                     throw new ArgumentNullException(nameof(dictionary));
@@ -359,17 +336,17 @@ namespace UnsafeCollections.Collections.Native
                 get => _dictionary.IsCreated;
             }
 
-            public UnsafeSortedDictionary.ValueEnumerator<V> GetEnumerator()
+            public UnsafeDictionary.ValueEnumerator<V> GetEnumerator()
             {
-                return new UnsafeSortedDictionary.ValueEnumerator<V>(_dictionary.m_inner);
+                return new UnsafeDictionary.ValueEnumerator<V>(_dictionary.m_inner);
             }
             IEnumerator<V> IEnumerable<V>.GetEnumerator()
             {
-                return new UnsafeSortedDictionary.ValueEnumerator<V>(_dictionary.m_inner);
+                return new UnsafeDictionary.ValueEnumerator<V>(_dictionary.m_inner);
             }
             IEnumerator IEnumerable.GetEnumerator()
             {
-                return new UnsafeSortedDictionary.ValueEnumerator<V>(_dictionary.m_inner);
+                return new UnsafeDictionary.ValueEnumerator<V>(_dictionary.m_inner);
             }
 
             public void CopyTo(V[] array, int index)
@@ -443,13 +420,13 @@ namespace UnsafeCollections.Collections.Native
         }
     }
 
-    public unsafe static class NativeSortedDictionaryExtensions
+    public unsafe static class NativeDictionaryExtensions
     {
-        public static bool ContainsValue<K, V>(this NativeSortedDictionary<K, V> dict, V value)
-            where K : unmanaged, IComparable<K>
+        public static bool ContainsValue<K, V>(this NativeDictionary<K, V> dict, V value)
+            where K : unmanaged, IEquatable<K>
             where V : unmanaged, IEquatable<V>
         {
-            return UnsafeSortedDictionary.ContainsValue<V>(dict.GetInnerCollection(), value);
+            return UnsafeDictionary.ContainsValue<V>(dict.GetInnerCollection(), value);
         }
     }
 }

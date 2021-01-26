@@ -130,24 +130,53 @@ namespace UnsafeCollections.Collections.Unsafe
             where K : unmanaged, IComparable<K>
             where V : unmanaged
         {
+            TryInsert(map, key, value, MapInsertionBehaviour.ThrowIfExists);
+        }
+
+        public static bool TryAdd<K, V>(UnsafeSortedDictionary* map, K key, V value)
+            where K : unmanaged, IComparable<K>
+            where V : unmanaged
+        {
+            return TryInsert(map, key, value, MapInsertionBehaviour.None);
+        }
+
+        private static bool TryInsert<K, V>(UnsafeSortedDictionary* map, K key, V value, MapInsertionBehaviour behaviour)
+            where K : unmanaged, IComparable<K>
+            where V : unmanaged
+        {
             UDebug.Assert(map != null);
             UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
             UDebug.Assert(typeof(V).TypeHandle.Value == map->_typeHandleValue);
 
             var entry = UnsafeOrderedCollection.Find<K>(&map->_collection, key);
+
+            // Entry is already present
             if (entry != null)
             {
-                throw new ArgumentException(string.Format(ThrowHelper.Arg_AddingDuplicateWithKey, key));
+                if (behaviour == MapInsertionBehaviour.Overwrite)
+                {
+                    *GetValue<V>(map->_valueOffset, entry) = value;
+                    return true;
+                }
+
+                if (behaviour == MapInsertionBehaviour.ThrowIfExists)
+                {
+                    throw new ArgumentException(string.Format(ThrowHelper.Arg_AddingDuplicateWithKey, key));
+                }
+
+                return false;
             }
+            // Create new entry
             else
             {
                 entry = UnsafeOrderedCollection.Insert<K>(&map->_collection, key);
                 *GetValue<V>(map->_valueOffset, entry) = value;
+                return true;
             }
         }
 
         public static bool Remove<K>(UnsafeSortedDictionary* map, K Key)
-            where K : unmanaged, IComparable<K>
+        where K : unmanaged, IComparable<K>
         {
             UDebug.Assert(map != null);
             UDebug.Assert(typeof(K).TypeHandle.Value == map->_typeHandleKey);
@@ -155,7 +184,7 @@ namespace UnsafeCollections.Collections.Unsafe
             return UnsafeOrderedCollection.Remove<K>(&map->_collection, Key);
         }
 
-        public static bool Contains<K>(UnsafeSortedDictionary* map, K key)
+        public static bool ContainsKey<K>(UnsafeSortedDictionary* map, K key)
             where K : unmanaged, IComparable<K>
         {
             UDebug.Assert(map != null);
@@ -164,16 +193,24 @@ namespace UnsafeCollections.Collections.Unsafe
             return UnsafeOrderedCollection.Find<K>(&map->_collection, key) != null;
         }
 
+        public static bool ContainsValue<V>(UnsafeSortedDictionary* map, V value)
+            where V : unmanaged, IEquatable<V>
+        {
+            var iterator = new ValueEnumerator<V>(map);
+            while (iterator.MoveNext())
+            {
+                if (value.Equals(iterator.Current))
+                    return true;
+            }
+
+            return false;
+        }
+
         public static void Set<K, V>(UnsafeSortedDictionary* map, K key, V value)
             where K : unmanaged, IComparable<K>
             where V : unmanaged
         {
-            var entry = UnsafeOrderedCollection.Find<K>(&map->_collection, key);
-
-            if (entry == null)
-                entry = UnsafeOrderedCollection.Insert<K>(&map->_collection, key);
-
-            *GetValue<V>(map->_valueOffset, entry) = value;
+            TryInsert(map, key, value, MapInsertionBehaviour.Overwrite);
         }
 
         public static V Get<K, V>(UnsafeSortedDictionary* map, K key)

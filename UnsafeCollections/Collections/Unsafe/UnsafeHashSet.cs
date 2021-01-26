@@ -1,6 +1,13 @@
 /*
 The MIT License (MIT)
 
+Copyright (c) 2021 Dennis Corvers
+
+This software is based on, a modification of and/or an extention 
+of "UnsafeCollections" originally authored by:
+
+The MIT License (MIT)
+
 Copyright (c) 2019 Fredrik Holmstrom
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -122,6 +129,13 @@ namespace UnsafeCollections.Collections.Unsafe
             return set->_collection.UsedCount - set->_collection.FreeCount;
         }
 
+        public static bool IsFixedSize(UnsafeHashSet* set)
+        {
+            UDebug.Assert(set != null);
+
+            return set->_collection.Entries.Dynamic == 0;
+        }
+
         public static void Clear(UnsafeHashSet* set)
         {
             UDebug.Assert(set != null);
@@ -156,7 +170,7 @@ namespace UnsafeCollections.Collections.Unsafe
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Contains<T>(UnsafeHashSet* set, T key) 
+        public static bool Contains<T>(UnsafeHashSet* set, T key)
             where T : unmanaged, IEquatable<T>
         {
             UDebug.Assert(set != null);
@@ -187,7 +201,7 @@ namespace UnsafeCollections.Collections.Unsafe
             }
         }
 
-        public static Enumerator<T> GetEnumerator<T>(UnsafeHashSet* set) 
+        public static Enumerator<T> GetEnumerator<T>(UnsafeHashSet* set)
             where T : unmanaged
         {
             UDebug.Assert(set != null);
@@ -331,16 +345,16 @@ namespace UnsafeCollections.Collections.Unsafe
             }
         }
 
-        public unsafe struct Enumerator<T> : IUnsafeEnumerator<T> 
+        public unsafe struct Enumerator<T> : IUnsafeEnumerator<T>
             where T : unmanaged
         {
-            UnsafeHashCollection.Enumarator _iterator;
+            UnsafeHashCollection.Enumerator _iterator;
             readonly int _keyOffset;
 
             public Enumerator(UnsafeHashSet* set)
             {
                 _keyOffset = set->_collection.KeyOffset;
-                _iterator = new UnsafeHashCollection.Enumarator(&set->_collection);
+                _iterator = new UnsafeHashCollection.Enumerator(&set->_collection);
             }
 
             public bool MoveNext()

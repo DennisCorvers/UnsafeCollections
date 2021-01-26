@@ -116,6 +116,17 @@ namespace UnsafeCollectionsTests.Unsafe
         }
 
         [Test]
+        public void TryAddTest()
+        {
+            var set = UnsafeSortedDictionary.Allocate<int, float>(8, true);
+
+            Assert.IsTrue(UnsafeSortedDictionary.TryAdd<int, float>(set, 5, 10));
+            Assert.IsTrue(UnsafeSortedDictionary.TryAdd<int, float>(set, 2, 18));
+            Assert.IsTrue(UnsafeSortedDictionary.TryAdd<int, float>(set, 1, 1));
+            Assert.IsFalse(UnsafeSortedDictionary.TryAdd<int, float>(set, 2, 1));
+        }
+
+        [Test]
         public void ExpandFailedTest()
         {
             var set = UnsafeSortedDictionary.Allocate<int, float>(8, true);
@@ -160,21 +171,39 @@ namespace UnsafeCollectionsTests.Unsafe
         {
             var set = UnsafeSortedDictionary.Allocate<int, int>(10);
 
-            Assert.IsFalse(UnsafeSortedDictionary.Contains<int>(set, 1));
+            Assert.IsFalse(UnsafeSortedDictionary.ContainsKey<int>(set, 1));
 
             UnsafeSortedDictionary.Add(set, 1, 3);
             UnsafeSortedDictionary.Add(set, 7, 3);
             UnsafeSortedDictionary.Add(set, 51, 3);
             UnsafeSortedDictionary.Add(set, 13, 3);
 
-            Assert.IsFalse(UnsafeSortedDictionary.Contains<int>(set, 3));
+            Assert.IsFalse(UnsafeSortedDictionary.ContainsKey<int>(set, 3));
 
-            Assert.IsTrue(UnsafeSortedDictionary.Contains<int>(set, 1));
-            Assert.IsTrue(UnsafeSortedDictionary.Contains<int>(set, 7));
-            Assert.IsTrue(UnsafeSortedDictionary.Contains<int>(set, 13));
-            Assert.IsTrue(UnsafeSortedDictionary.Contains<int>(set, 51));
+            Assert.IsTrue(UnsafeSortedDictionary.ContainsKey<int>(set, 1));
+            Assert.IsTrue(UnsafeSortedDictionary.ContainsKey<int>(set, 7));
+            Assert.IsTrue(UnsafeSortedDictionary.ContainsKey<int>(set, 13));
+            Assert.IsTrue(UnsafeSortedDictionary.ContainsKey<int>(set, 51));
 
-            Assert.IsFalse(UnsafeSortedDictionary.Contains<int>(set, 14));
+            Assert.IsFalse(UnsafeSortedDictionary.ContainsKey<int>(set, 14));
+
+            UnsafeSortedDictionary.Free(set);
+        }
+
+        [Test]
+        public void ContainsValueTest()
+        {
+            var set = UnsafeSortedDictionary.Allocate<int, int>(10);
+
+            Assert.IsFalse(UnsafeSortedDictionary.ContainsKey<int>(set, 1));
+
+            UnsafeSortedDictionary.Add(set, 1, 5);
+            UnsafeSortedDictionary.Add(set, 2, 2);
+            UnsafeSortedDictionary.Add(set, 3, 38);
+
+            Assert.IsTrue(UnsafeSortedDictionary.ContainsValue<int>(set, 2));
+            Assert.IsTrue(UnsafeSortedDictionary.ContainsValue<int>(set, 38));
+            Assert.IsFalse(UnsafeSortedDictionary.ContainsValue<int>(set, 1));
 
             UnsafeSortedDictionary.Free(set);
         }

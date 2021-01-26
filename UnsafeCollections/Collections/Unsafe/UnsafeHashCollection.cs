@@ -48,7 +48,7 @@ namespace UnsafeCollections.Collections.Unsafe
             public EntryState State;
         }
 
-        internal struct Enumarator
+        internal struct Enumerator
         {
             int _index;
 
@@ -56,7 +56,7 @@ namespace UnsafeCollections.Collections.Unsafe
             public Entry* Current;
             public UnsafeHashCollection* Collection;
 
-            public Enumarator(UnsafeHashCollection* collection)
+            public Enumerator(UnsafeHashCollection* collection)
             {
                 _index = -1;
 
@@ -132,6 +132,9 @@ namespace UnsafeCollections.Collections.Unsafe
         public int FreeCount;
         public int KeyOffset;
 
+        /// <summary>
+        /// Returns the next prime number, unless this number is a prime.
+        /// </summary>
         public static int GetNextPrime(int value)
         {
             value--;
