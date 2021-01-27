@@ -36,7 +36,7 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
             var q = UnsafeSPSCQueue.Allocate<int>(10);
 
             Assert.AreEqual(0, UnsafeSPSCQueue.GetCount(q));
-            Assert.AreEqual(16, UnsafeSPSCQueue.GetCapacity(q));
+            Assert.AreEqual(10, UnsafeSPSCQueue.GetCapacity(q));
 
             UnsafeSPSCQueue.Free(q);
         }
@@ -52,12 +52,12 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
             }
 
             Assert.AreEqual(10, UnsafeSPSCQueue.GetCount(q));
-            Assert.AreEqual(16, UnsafeSPSCQueue.GetCapacity(q));
+            Assert.AreEqual(10, UnsafeSPSCQueue.GetCapacity(q));
 
             UnsafeSPSCQueue.Clear(q);
 
             Assert.AreEqual(0, UnsafeSPSCQueue.GetCount(q));
-            Assert.AreEqual(16, UnsafeSPSCQueue.GetCapacity(q));
+            Assert.AreEqual(10, UnsafeSPSCQueue.GetCapacity(q));
 
             UnsafeSPSCQueue.Free(q);
         }
@@ -69,7 +69,6 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
 
             for (int i = 0; i < 10; i++)
                 UnsafeSPSCQueue.Enqueue(q, i * i);
-
 
             for (int i = 0; i < 10; i++)
             {
@@ -102,7 +101,7 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
         [Test]
         public void ExpandTest()
         {
-            var q = UnsafeSPSCQueue.Allocate<int>(10);
+            var q = UnsafeSPSCQueue.Allocate<int>(16);
 
             SplitQueue(q);
 
@@ -141,7 +140,10 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
 
             //Empty 6 last items
             for (int i = 0; i < 6; i++)
+            {
                 Assert.IsTrue(UnsafeSPSCQueue.TryDequeue(q, out int val));
+                Assert.AreEqual(999, val);
+            }
 
             //Empty queue
             Assert.IsFalse(UnsafeSPSCQueue.TryPeek(q, out int res));
@@ -152,7 +154,7 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
         [Test]
         public void ClearTest()
         {
-            var q = UnsafeSPSCQueue.Allocate<int>(16);
+            var q = UnsafeSPSCQueue.Allocate<int>(10);
 
             //Inserts 10 items.
             SplitQueue(q);
@@ -214,7 +216,7 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
             }
         }
 
-        //[Test]
+        [Test]
         // Demonstration that this queue is SPSC
         public void ConcurrencyTest()
         {
@@ -225,8 +227,7 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
             {
                 for (int i = 0; i < count; i++)
                 {
-                    if (i != UnsafeSPSCQueue.Dequeue<int>(q))
-                        Assert.Fail("Dequeue gave an unexpected result");
+                    Assert.AreEqual(i, UnsafeSPSCQueue.Dequeue<int>(q));
                 }
             });
 
@@ -242,7 +243,7 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
             UnsafeSPSCQueue.Free(q);
         }
 
-        //[Test]
+        [Test]
         //Demonstration that this queue isn't MPSC
         public void ConcurrencyTest2()
         {

@@ -41,7 +41,6 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
         UnsafeBuffer _items;
         IntPtr _typeHandle;         // Readonly
         HeadAndTail _headAndTail;
-        int _mask;                  // Readonly
 
         /// <summary>
         /// Allocates a new SPSCRingbuffer. Capacity will be set to a power of 2.
@@ -51,7 +50,9 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             if (capacity < 1)
                 throw new ArgumentOutOfRangeException(nameof(capacity), string.Format(ThrowHelper.ArgumentOutOfRange_MustBePositive, nameof(capacity)));
 
-            capacity = Memory.RoundUpToPowerOf2(capacity);
+            // Requires one extra element to distinguish between empty and full queue.
+            capacity++;
+
             int stride = sizeof(T);
 
             var alignment = Memory.GetAlignment(stride);
@@ -66,7 +67,6 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             UnsafeBuffer.InitFixed(&queue->_items, (byte*)ptr + sizeOfQueue, capacity, stride);
 
             queue->_headAndTail = new HeadAndTail();
-            queue->_mask = capacity - 1;
             queue->_typeHandle = typeof(T).TypeHandle.Value;
 
             return queue;
@@ -100,7 +100,7 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             UDebug.Assert(queue != null);
             UDebug.Assert(queue->_items.Ptr != null);
 
-            return queue->_items.Length;
+            return queue->_items.Length - 1;
         }
 
         public static int GetCount(UnsafeSPSCQueue* queue)
@@ -110,16 +110,12 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 
             var head = Volatile.Read(ref queue->_headAndTail.Head);
             var tail = Volatile.Read(ref queue->_headAndTail.Tail);
-            int mask = queue->_mask;
 
-            if (head != tail)
-            {
-                head &= mask;
-                tail &= mask;
+            var dif = tail - head;
+            if (dif < 0)
+                dif += queue->_items.Length;
 
-                return (int)(head < tail ? tail - head : queue->_items.Length - head + tail);
-            }
-            return 0;
+            return dif;
         }
 
         public static void Clear(UnsafeSPSCQueue* queue)
@@ -141,21 +137,16 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 
             SpinWait spinner = default;
             var tail = Volatile.Read(ref queue->_headAndTail.Tail);
-            var currentHead = Volatile.Read(ref queue->_headAndTail.Head);
+            var nextTail = GetNext(tail, queue->_items.Length);
 
-            var wrap = tail - queue->_items.Length;
 
-            while (wrap >= currentHead)
-            {
-                //Full queue, wait for space
-                currentHead = Volatile.Read(ref queue->_headAndTail.Head);
+            // Full Queue
+            while (nextTail == Volatile.Read(ref queue->_headAndTail.Head))
                 spinner.SpinOnce();
-            }
 
-            int nextIndex = (int)(tail & queue->_mask);
-            *queue->_items.Element<T>(nextIndex) = item;
+            *queue->_items.Element<T>(tail) = item;
 
-            Volatile.Write(ref queue->_headAndTail.Tail, tail + 1);
+            Volatile.Write(ref queue->_headAndTail.Tail, nextTail);
         }
 
         /// <summary>
@@ -168,19 +159,15 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             UDebug.Assert(typeof(T).TypeHandle.Value == queue->_typeHandle);
 
             var tail = Volatile.Read(ref queue->_headAndTail.Tail);
-            var currentHead = Volatile.Read(ref queue->_headAndTail.Head);
+            var nextTail = GetNext(tail, queue->_items.Length);
 
-            var wrap = tail - queue->_items.Length;
-
-            if (wrap >= currentHead)
-            {
+            // Full Queue
+            if (nextTail == Volatile.Read(ref queue->_headAndTail.Head))
                 return false;
-            }
 
-            int nextIndex = (int)(tail & queue->_mask);
-            *queue->_items.Element<T>(nextIndex) = item;
+            *queue->_items.Element<T>(tail) = item;
 
-            Volatile.Write(ref queue->_headAndTail.Tail, tail + 1);
+            Volatile.Write(ref queue->_headAndTail.Tail, nextTail);
             return true;
         }
 
@@ -196,16 +183,17 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             SpinWait spinner = default;
             var head = Volatile.Read(ref queue->_headAndTail.Head);
 
-            while (Volatile.Read(ref queue->_headAndTail.Tail) <= head)
+            // Queue empty
+            while (Volatile.Read(ref queue->_headAndTail.Tail) == head)
             {
                 spinner.SpinOnce();
             }
 
-            int nextIndex = (int)(head & queue->_mask);
-            var result = *queue->_items.Element<T>(nextIndex);
-            Volatile.Write(ref queue->_headAndTail.Head, head + 1);
+            var result = queue->_items.Element<T>(head);
+            var nextHead = GetNext(head, queue->_items.Length);
+            Volatile.Write(ref queue->_headAndTail.Head, nextHead);
 
-            return result;
+            return *result;
         }
 
         /// <summary>
@@ -219,15 +207,16 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 
             var head = Volatile.Read(ref queue->_headAndTail.Head);
 
-            if (Volatile.Read(ref queue->_headAndTail.Tail) <= head)
+            // Queue empty
+            if (Volatile.Read(ref queue->_headAndTail.Tail) == head)
             {
                 result = default;
                 return false;
             }
 
-            int nextIndex = (int)(head & queue->_mask);
-            result = *queue->_items.Element<T>(nextIndex);
-            Volatile.Write(ref queue->_headAndTail.Head, head + 1);
+            result = *queue->_items.Element<T>(head);
+            var nextHead = GetNext(head, queue->_items.Length);
+            Volatile.Write(ref queue->_headAndTail.Head, nextHead);
 
             return true;
         }
@@ -240,14 +229,14 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 
             var head = Volatile.Read(ref queue->_headAndTail.Head);
 
-            if (Volatile.Read(ref queue->_headAndTail.Tail) <= head)
+            // Queue empty
+            if (Volatile.Read(ref queue->_headAndTail.Tail) == head)
             {
                 result = default;
                 return false;
             }
 
-            int nextIndex = (int)(head & queue->_mask);
-            result = *queue->_items.Element<T>(nextIndex);
+            result = *queue->_items.Element<T>(head);
 
             return true;
         }
@@ -264,13 +253,23 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             SpinWait spinner = default;
             var head = Volatile.Read(ref queue->_headAndTail.Head);
 
-            while (Volatile.Read(ref queue->_headAndTail.Tail) <= head)
+            // Queue empty
+            if (Volatile.Read(ref queue->_headAndTail.Tail) == head)
             {
                 spinner.SpinOnce();
             }
 
-            int nextIndex = (int)(head & queue->_mask);
-            return *queue->_items.Element<T>(nextIndex);
+            return *queue->_items.Element<T>(head);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static int GetNext(int value, int length)
+        {
+            value++;
+
+            if (value == length)
+                value = 0;
+            return value;
         }
 
         /// <summary>
@@ -285,14 +284,10 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
 
             var head = Volatile.Read(ref queue->_headAndTail.Head);
             var tail = Volatile.Read(ref queue->_headAndTail.Tail);
-            var mask = queue->_mask;
 
-            head &= mask;
-            tail &= mask;
-
-            var count = head < tail ?
-                tail - head :
-                queue->_items.Length - head + tail;
+            var count = tail - head;
+            if (count < 0)
+                count += queue->_items.Length;
 
             if (count <= 0)
                 return Array.Empty<T>();
@@ -337,9 +332,9 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
             // The HEAD is frozen in place when the enumerator is created. This means that the maximum 
             // amount of items read is always the capacity of the queue and no more.
             readonly UnsafeSPSCQueue* _queue;
-            readonly long _headStart;
-            readonly int _mask;
+            readonly int _headStart;
             int _index;
+            int _capacity;
             T* _current;
 
             internal Enumerator(UnsafeSPSCQueue* queue)
@@ -348,7 +343,7 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
                 _index = -1;
                 _current = default;
                 _headStart = Volatile.Read(ref queue->_headAndTail.Head);
-                _mask = queue->_mask;
+                _capacity = queue->_items.Length;
             }
 
             public void Dispose()
@@ -367,17 +362,21 @@ namespace UnsafeCollections.Collections.Unsafe.Concurrent
                     throw new InvalidOperationException(ThrowHelper.InvalidOperation_EnumFailedVersion);
 
                 var headIndex = head + ++_index;
-                var nextHead = headIndex + 1;
 
-                //No more data. Abort immediately
-                if (Volatile.Read(ref _queue->_headAndTail.Tail) < nextHead)
+                if (headIndex >= _capacity)
+                {
+                    // Wrap around if needed
+                    headIndex -= _capacity;
+                }
+
+                // Queue empty
+                if (Volatile.Read(ref _queue->_headAndTail.Tail) == headIndex)
                 {
                     _current = default;
                     return false;
                 }
 
-                int nextIndex = headIndex & _queue->_mask;
-                _current = _queue->_items.Element<T>(nextIndex);
+                _current = _queue->_items.Element<T>(headIndex);
 
                 return true;
             }
