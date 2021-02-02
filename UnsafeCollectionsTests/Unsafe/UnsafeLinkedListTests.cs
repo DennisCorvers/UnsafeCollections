@@ -270,10 +270,10 @@ namespace UnsafeCollectionsTests.Unsafe
 
             // Add a node after 1 and 3 so we have a 1 - 5 sequence
             var node = UnsafeLinkedList.FindNode(llist, 1);
-            UnsafeLinkedList.AddAfter(llist, ref node, 2);
+            UnsafeLinkedList.AddAfter(llist, node, 2);
 
             node = UnsafeLinkedList.FindNode(llist, 3);
-            UnsafeLinkedList.AddAfter(llist, ref node, 4);
+            UnsafeLinkedList.AddAfter(llist, node, 4);
 
             Assert.AreEqual(5, UnsafeLinkedList.GetCount(llist));
 

@@ -34,7 +34,7 @@ namespace UnsafeCollections.Collections.Native
 {
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(typeof(NativeCollectionDebugView<>))]
-    public unsafe struct NativeList<T> : INativeCollection<T> where T : unmanaged
+    public unsafe struct NativeList<T> : INativeCollection<T>, INativeReadOnlyCollection<T> where T : unmanaged
     {
         private UnsafeList* m_inner;
 

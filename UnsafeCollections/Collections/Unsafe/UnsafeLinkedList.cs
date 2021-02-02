@@ -1,8 +1,31 @@
-﻿using System;
+﻿/*
+The MIT License (MIT)
+
+Copyright (c) 2021 Dennis Corvers
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
 using UnsafeCollections.Debug;
 
 namespace UnsafeCollections.Collections.Unsafe
@@ -99,21 +122,7 @@ namespace UnsafeCollections.Collections.Unsafe
             UDebug.Assert(typeof(T).TypeHandle.Value == llist->_typeHandle);
 
             var node = CreateNode(item, llist->_nodestride);
-            AddFirst(llist, ref node);
-        }
 
-        public static void AddLast<T>(UnsafeLinkedList* llist, T item)
-            where T : unmanaged
-        {
-            UDebug.Assert(llist != null);
-            UDebug.Assert(typeof(T).TypeHandle.Value == llist->_typeHandle);
-
-            var node = CreateNode(item, llist->_nodestride);
-            AddLast(llist, ref node);
-        }
-
-        public static void AddFirst(UnsafeLinkedList* llist, ref Node* node)
-        {
             if (llist->_head == null)
             {
                 llist->_head = llist->_tail = node;
@@ -126,11 +135,16 @@ namespace UnsafeCollections.Collections.Unsafe
             }
 
             llist->_count++;
-            node = null;
         }
 
-        public static void AddLast(UnsafeLinkedList* llist, ref Node* node)
+        public static void AddLast<T>(UnsafeLinkedList* llist, T item)
+            where T : unmanaged
         {
+            UDebug.Assert(llist != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == llist->_typeHandle);
+
+            var node = CreateNode(item, llist->_nodestride);
+
             if (llist->_head == null)
             {
                 llist->_head = llist->_tail = node;
@@ -143,10 +157,9 @@ namespace UnsafeCollections.Collections.Unsafe
             }
 
             llist->_count++;
-            node = null;
         }
 
-        public static void AddAfter<T>(UnsafeLinkedList* llist, ref Node* previousNode, T item)
+        public static void AddAfter<T>(UnsafeLinkedList* llist, Node* previousNode, T item)
             where T : unmanaged
         {
             if (previousNode == null)
@@ -162,8 +175,6 @@ namespace UnsafeCollections.Collections.Unsafe
             // If the next node is null, this is the tail.
             if (node->_next == null)
                 llist->_tail = node;
-
-            previousNode = null;
 
             llist->_count++;
         }
@@ -207,7 +218,7 @@ namespace UnsafeCollections.Collections.Unsafe
         }
 
         public static bool Remove<T>(UnsafeLinkedList* llist, T item)
-                    where T : unmanaged, IEquatable<T>
+            where T : unmanaged, IEquatable<T>
         {
             UDebug.Assert(llist != null);
             UDebug.Assert(typeof(T).TypeHandle.Value == llist->_typeHandle);
@@ -218,6 +229,33 @@ namespace UnsafeCollections.Collections.Unsafe
             while (node != null)
             {
                 if (item.Equals(*GetItemFromNode<T>(node)))
+                {
+                    llist->DeleteNode(node, prev);
+                    return true;
+                }
+
+                // Advance to next node and remember the prev node.
+                prev = node;
+                node = node->_next;
+            }
+
+            return false;
+        }
+
+        internal static bool RemoveSlow<T>(UnsafeLinkedList* llist, T item)
+            where T : unmanaged
+        {
+            UDebug.Assert(llist != null);
+            UDebug.Assert(typeof(T).TypeHandle.Value == llist->_typeHandle);
+
+            Node* prev = null;
+            Node* node = llist->_head;
+
+            var eq = EqualityComparer<T>.Default;
+
+            while (node != null)
+            {
+                if (eq.Equals(item, *GetItemFromNode<T>(node)))
                 {
                     llist->DeleteNode(node, prev);
                     return true;
@@ -373,14 +411,6 @@ namespace UnsafeCollections.Collections.Unsafe
             *(T*)((byte*)node + ALIGNMENT) = item;
 
             return node;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Node* CreateNode<T>(T item)
-            where T : unmanaged
-        {
-            return CreateNode(item, _nodestride);
         }
 
         /// <summary>
