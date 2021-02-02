@@ -247,8 +247,8 @@ namespace UnsafeCollectionsTests.Unsafe.Concurrent
         //Demonstration that this queue isn't MPSC
         public void ConcurrencyTest2()
         {
-            var q = UnsafeSPSCQueue.Allocate<int>(16000);
-            int count = 10000;
+            var q = UnsafeSPSCQueue.Allocate<int>(1600000);
+            int count = 1000000;
 
             Thread writer = new Thread(() =>
             {

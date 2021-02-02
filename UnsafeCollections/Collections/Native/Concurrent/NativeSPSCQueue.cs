@@ -180,7 +180,7 @@ namespace UnsafeCollections.Collections.Native.Concurrent
         }
 
 #if UNITY
-        [WriteAccessRequired]
+        [Unity.Collections.LowLevel.Unsafe.WriteAccessRequired]
 #endif
         public void Dispose()
         {

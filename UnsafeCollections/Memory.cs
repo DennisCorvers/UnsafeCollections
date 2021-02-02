@@ -77,12 +77,13 @@ namespace UnsafeCollections
             UnsafeUtility.MemClear(ptr, size);
 #else
             long c = size / 8; // longs
-            long b = size % 8; // bytes
 
-            for (int i = 0; i < c; i++)
+            int i = 0;
+            for (; i < c; i++)
                 *((ulong*)ptr + i) = 0;
 
-            for (int i = 0; i < b; i++)
+            i *= 8;
+            for (; i < size; i++)
                 *((byte*)ptr + i) = 0;
 #endif
         }
@@ -221,17 +222,17 @@ namespace UnsafeCollections
 
         public static int GetAlignment(int stride)
         {
-            if ((stride % 8) == 0)
+            if ((stride & 7) == 0)
             {
                 return 8;
             }
 
-            if ((stride % 4) == 0)
+            if ((stride & 3) == 0)
             {
                 return 4;
             }
 
-            return (stride % 2) == 0 ? 2 : 1;
+            return (stride & 1) == 0 ? 2 : 1;
         }
 
         public static int GetMaxAlignment(int a, int b)

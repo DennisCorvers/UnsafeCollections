@@ -187,7 +187,7 @@ namespace UnsafeCollections.Collections.Native
         }
 
 #if UNITY
-        [WriteAccessRequired]
+        [Unity.Collections.LowLevel.Unsafe.WriteAccessRequired]
 #endif
         public void Dispose()
         {
