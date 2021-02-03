@@ -4,8 +4,6 @@ As this fork diverged too much from the [original](https://github.com/fholm/Unsa
 
 This project contains various collections that perform no managed memory allocation. It alleviates GC (Garbage Collector) pressure useful for usecases such as Unity.
 
-**This project is still a WIP**
-
 Project is targeted as a .Net 2.0 Standard library. Usable in Unity via dll.
 
 ## Usage
@@ -17,6 +15,7 @@ You **must** instantiate the collections with any non-default constructor. After
 
 - Array
 - List
+- LinkedList
 - Stack
 - Queue
 - Bit Set
@@ -31,10 +30,6 @@ You **must** instantiate the collections with any non-default constructor. After
 - Concurrent MPSC Lockfree Queue
 - Concurrent MPMC Queue (Lockfree with fixed size) 
 
-## Planned Additions
-- Concurrent Multi Producer Multi Consumer Dictionary (MPMC, mostly lockless)
-- Single-Value heap
-- Linked List
 
 ## Build
 Use Preprocessor directive UNITY to build the project using the Unity memory allocators instead of the .Net ones.
