@@ -76,13 +76,13 @@ namespace UnsafeCollections
 #if UNITY
             UnsafeUtility.MemClear(ptr, size);
 #else
-            long c = size / 8; // longs
+            long c = size >> 3; // longs
 
             int i = 0;
             for (; i < c; i++)
                 *((ulong*)ptr + i) = 0;
 
-            i *= 8;
+            i = i << 3;
             for (; i < size; i++)
                 *((byte*)ptr + i) = 0;
 #endif
