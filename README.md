@@ -86,7 +86,7 @@ SortedSet Add in reverse order (worst case)
 ### Dictionary
 
 Dictionary Add followed by Remove
-|             Method |     Mean |   Error |  StdDev |
-|------------------- |---------:|--------:|--------:|
-|       SortedSetAdd | 580.0 ns | 0.82 ns | 0.73 ns |
-| NativeSortedSetAdd | 461.8 ns | 2.82 ns | 2.64 ns |
+|              Method |     Mean |   Error |  StdDev |
+|-------------------- |---------:|--------:|--------:|
+|       DictionaryAdd | 580.0 ns | 0.82 ns | 0.73 ns |
+| NativeDictionaryAdd | 461.8 ns | 2.82 ns | 2.64 ns |
